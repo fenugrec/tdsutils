@@ -84,7 +84,7 @@ static main() {
 		Jump(cur);
 
 		// must be a 0x00
-		if ((Byte(cur) != 0)) {
+		if (Byte(cur) != 0) {
 			continue;
 		}
 
@@ -94,7 +94,10 @@ static main() {
 			continue;
 		}
 
-		// even address
+		// even address, must have a second 0x00
+		if (Byte(cur + 1) != 0) {
+			continue;
+		}
 		if (check_align4(cur) == -1) return;
 
 	}
