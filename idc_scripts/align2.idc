@@ -13,7 +13,7 @@ static check_align2(cur) {
 
 	// check previous and after for code/data
 	tflags = GetFlags(cur - 1);
-	Message("tf prev @%X =%X\n", cur, tflags);
+//	Message("tf prev @%X =%X\n", cur, tflags);
 	if (isUnknown(tflags))return;
 
 	tflags = GetFlags(cur + 1);
@@ -24,8 +24,9 @@ static check_align2(cur) {
 
 	pr=AskYN(1, form("got 1 @ %X", cur));
 	if (pr == 1) {
-		pr = MakeAlign(cur, 1, 0);
-		if (!pr) return -1;
+		//pr = 
+		MakeAlign(cur, 1, 0);
+		//if (!pr) return -1;
 	}
 	return pr;
 }
@@ -45,8 +46,9 @@ static check_align4(cur) {
 
 	pr=AskYN(1, form("got 2 @ %X", cur));
 	if (pr == 1) {
-		pr = MakeAlign(cur, 2, 0);
-		if (!pr) return -1;
+		//pr = 
+		MakeAlign(cur, 2, 0);
+		//if (!pr) return -1;
 	}
 	return pr;
 }
