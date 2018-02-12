@@ -33,15 +33,15 @@ struct pack_meta {
 };
 
 /* global data for mangle() */
-bool mang_flag;
-u32 bdest;
+bool flag_getlen;
+void *bdest;
 
 
-/* 90% confidence (untested) */
+/* 99% confidence; returns sane data. */
 u32 mangle(const struct pack_meta *pm, u32 val) {
 	//val is "d2" in orig code
 
-	printf("mang: n %X\n", val);
+//	printf("mang: n %X:", val);
 	while (val >= pm->tokbase) {
 		u32 a1;
 		if (val > pm->maxtok) {
@@ -53,30 +53,37 @@ u32 mangle(const struct pack_meta *pm, u32 val) {
 
 		//update for next loop
 		val = reconst_16(&(pm->text_tok[2 + (val * 4)]));
-		printf("mang: L %X\n", val);
+		//printf("L %04X.", val);
 	}
 
-	if (!mang_flag) {
-		bdest = (val & 0xFF);
+	printf("%c", (char) val);
+
+	if (!flag_getlen) {
+		*(u8 *) bdest = (val & 0xFF);
 	}
-	bdest += 1;
+	bdest = (u8 *) bdest + 1;
 	return val;
 }
 
-/* TODO : confirm u16 vs u32 arg pushing */
-u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool mang, u32 arg8) {
+/* TODO : confirm u16 vs u32 arg pushing
+ *
+ * if (getlen) : arg8 is u16 / don't care; set to 0.
+ * if (!getlen) : arg8 is (u8 *) for destination string
+*/
+u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void *arg8) {
 	const u8 *pd;	//packed chunk; a2 in code
 	u32 d2 = 0;
 	u32 d3 = 0;
 
 	bdest = arg8;
-	mang_flag = mang;
+	flag_getlen = getlen;
 
 	pd = &(pm->packed_t[offs_packed]);
 
 	if (!offs_packed) return 0;
 	//TODO : bounds check against runtime-calculated _Text_size ?
 
+	printf("upt @ %lX: \"", (unsigned long) offs_packed);
 
 	while (1) {
 		u32 d0;
@@ -98,8 +105,8 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool mang, u32 arg
 		break;
 	}
 
-	//weird stuff going on with bdest / two u16 vals
-	return ((u16) ((bdest & 0xFFFF) - arg8));
+	//return string length probably
+	return (((u16) bdest & 0xFFFF) - (u16) arg8);
 }
 
 
@@ -132,7 +139,7 @@ void unpack_all(FILE *i_file, struct pack_meta *pm) {
 
 	// test : call first with mflag = 1, bdest = 0
 	rv16 = _unpack_text(pm, rec_index + 2, 1, 0);
-	printf("ut returns %X\n", rv16);
+	printf("ut returns %X\n", (unsigned) rv16);
 	return;
 }
 
@@ -176,7 +183,7 @@ int main(int argc, char * argv[]) {
 	printf(	"**** %s\n"
 		"**** (c) 2018 fenugrec\n", argv[0]);
 
-	while((c = getopt_long(argc, argv, "t:m:a:f:h",
+	while((c = getopt_long(argc, argv, "t:m:a:p:f:h",
 			       long_options, &optidx)) != -1) {
 		switch(c) {
 		case 'h':
@@ -224,7 +231,8 @@ int main(int argc, char * argv[]) {
 	}
 	if (!pm.tokbase || !pm.maxtok || !pm.tokaddr || !pm.ptext ||
 			!file) {
-		printf("some missing args\n");
+		printf("some missing args.\n");
+		usage();
 		goto bad_exit;
 	}
 
