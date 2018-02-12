@@ -67,8 +67,6 @@ static main() {
 		return;
 	}
 
-	end = (cur + 100);
-	Message("%X - %X\n", cur, end);
 	while (cur < end) {
 		// jump to next transition from defined -> undefined
 		cur = FindExplored(ScreenEA(), SEARCH_DOWN);
@@ -95,7 +93,7 @@ static main() {
 		}
 
 		// even address
-		if (check_align4(cur) == -1) return
+		if (check_align4(cur) == -1) return;
 
 	}
 }
