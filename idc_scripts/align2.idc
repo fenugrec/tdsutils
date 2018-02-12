@@ -22,7 +22,11 @@ static check_align2(cur) {
 
 //	Message("got 1 @ %X\n", cur);
 
-	pr=AskYN(1, form("got 1 @ %X", cur));
+	//prompt only if there's xrefs to it
+	pr = 1;
+	if ((RfirstB0(cur) != BADADDR) || (DfirstB(cur) != BADADDR)) {
+		pr=AskYN(1, form("got 1 shared @ %X", cur));
+	}
 	if (pr == 1) {
 		//pr = 
 		MakeAlign(cur, 1, 0);
@@ -44,7 +48,12 @@ static check_align4(cur) {
 //	Message("tf next=%X\n", tflags);
 	if (isUnknown(tflags)) return;
 
-	pr=AskYN(1, form("got 2 @ %X", cur));
+	//prompt only if there's xrefs to it
+	pr = 1;
+	if ((RfirstB0(cur) != BADADDR) || (DfirstB(cur) != BADADDR)) {
+		pr=AskYN(1, form("got 2 shared @ %X", cur));
+	}
+
 	if (pr == 1) {
 		//pr = 
 		MakeAlign(cur, 2, 0);
