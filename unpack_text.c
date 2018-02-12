@@ -4,11 +4,16 @@
 
  */
 
+
+#include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
 
+#include "stypes.h"
 #include "tdslib.h"
 
 // these are unlikely to change
@@ -21,10 +26,87 @@ struct pack_meta {
 	u32 tokbase;
 	u32 maxtok;
 	u32 tokaddr;
+	u32 ptext;
+	//these can only be filled after buffering the ROM
+	const u8 *text_tok;	//table of tokens
+	const u8 *packed_t;	//raw packed text data
+};
+
+/* global data for mangle() */
+bool mang_flag;
+u32 bdest;
+
+
+/* 90% confidence (untested) */
+u32 mangle(const struct pack_meta *pm, u32 val) {
+	//val is "d2" in orig code
+
+	printf("mang: n %X\n", val);
+	while (val >= pm->tokbase) {
+		u32 a1;
+		if (val > pm->maxtok) {
+			return 0;
+		}
+		val -= pm->tokbase;
+		a1 = reconst_16(&(pm->text_tok[0 + (val * 4)]));
+		(void) mangle(pm, a1);	//recurse !
+
+		//update for next loop
+		val = reconst_16(&(pm->text_tok[2 + (val * 4)]));
+		printf("mang: L %X\n", val);
+	}
+
+	if (!mang_flag) {
+		bdest = (val & 0xFF);
+	}
+	bdest += 1;
+	return val;
 }
 
-void unpack_all(file *i_file, struct pack_meta *pm) {
+/* TODO : confirm u16 vs u32 arg pushing */
+u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool mang, u32 arg8) {
+	const u8 *pd;	//packed chunk; a2 in code
+	u32 d2 = 0;
+	u32 d3 = 0;
+
+	bdest = arg8;
+	mang_flag = mang;
+
+	pd = &(pm->packed_t[offs_packed]);
+
+	if (!offs_packed) return 0;
+	//TODO : bounds check against runtime-calculated _Text_size ?
+
+
+	while (1) {
+		u32 d0;
+
+		if (d2 < word_size) {
+			d3 <<= 8;
+			d3 |= *pd;
+			pd++;
+			d2 += 8;
+			continue;
+		}
+
+		d2 -= word_size;
+		d0 = (d3 >> d2) & word_mask;
+		d0 = mangle(pm, d0);
+		if (d0) {
+			continue;
+		}
+		break;
+	}
+
+	//weird stuff going on with bdest / two u16 vals
+	return ((u16) ((bdest & 0xFFFF) - arg8));
+}
+
+
+void unpack_all(FILE *i_file, struct pack_meta *pm) {
 	u32 file_len;
+	u16 rv16;
+	u16 rec_index = 0;
 
 	rewind(i_file);
 	file_len = flen(i_file);
@@ -45,9 +127,20 @@ void unpack_all(file *i_file, struct pack_meta *pm) {
 		return;
 	}
 
-	
+	pm->text_tok = &src[pm->tokaddr];
+	pm->packed_t = &src[pm->ptext];
+
+	// test : call first with mflag = 1, bdest = 0
+	rv16 = _unpack_text(pm, rec_index + 2, 1, 0);
+	printf("ut returns %X\n", rv16);
 	return;
 }
+
+
+
+
+/********* main stuff (options etc) */
+
 
 
 static struct option long_options[] = {
@@ -55,6 +148,7 @@ static struct option long_options[] = {
 	{ "tokbase", required_argument, 0, 't' },
 	{ "maxtok", required_argument, 0, 'm' },
 	{ "tokaddr", required_argument, 0, 'a' },
+	{ "ptext", required_argument, 0, 'p' },
 //	{ "debug", no_argument, 0, 'd' },
 	{ "help", no_argument, 0, 'h' },
 	{ NULL, 0, 0, 0 }
@@ -67,6 +161,7 @@ static void usage(void)
 		"--tokbase\t-t <base>  \tvalue of _Token_base\n"
 		"--maxtok \t-m <max>   \tvalue of _Max_token\n"
 		"--tokaddr\t-a <addr>  \tfile offset of _Text_token table\n"
+		"--ptext  \t-p <addr>  \tfile offset of packed text array\n"
 		"");
 }
 
@@ -88,24 +183,29 @@ int main(int argc, char * argv[]) {
 			usage();
 			return 0;
 		case 't':
-			if (sscanf(optarg, "%x", &tok_base) != 1) {
+			if (sscanf(optarg, "%x", &pm.tokbase) != 1) {
 				printf("did not understand %s\n", optarg);
 				goto bad_exit;
 			}
 			break;
 		case 'm':
-			if (sscanf(optarg, "%x", &max_tok) != 1) {
+			if (sscanf(optarg, "%x", &pm.maxtok) != 1) {
 				printf("did not understand %s\n", optarg);
 				goto bad_exit;
 			}
 			break;
 		case 'a':
-			if (sscanf(optarg, "%x", &tok_addr) != 1) {
+			if (sscanf(optarg, "%x", &pm.tokaddr) != 1) {
 				printf("did not understand %s\n", optarg);
 				goto bad_exit;
 			}
 			break;
-
+		case 'p':
+			if (sscanf(optarg, "%x", &pm.ptext) != 1) {
+				printf("did not understand %s\n", optarg);
+				goto bad_exit;
+			}
+			break;
 		case 'f':
 			if (file) {
 				fprintf(stderr, "-f given twice");
@@ -122,7 +222,8 @@ int main(int argc, char * argv[]) {
 			goto bad_exit;
 		}
 	}
-	if (!tok_addr || !max_tok || !tok_base || !file) {
+	if (!pm.tokbase || !pm.maxtok || !pm.tokaddr || !pm.ptext ||
+			!file) {
 		printf("some missing args\n");
 		goto bad_exit;
 	}
@@ -132,7 +233,7 @@ int main(int argc, char * argv[]) {
 		goto bad_exit;
 	}
 
-	unpack_all(file);
+	unpack_all(file, &pm);
 	fclose(file);
 	return 0;
 
