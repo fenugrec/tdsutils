@@ -1,0 +1,9 @@
+Utilities for Tektronix TDS7xx (probably 5xx and 6xxx too) oscilloscopes.
+
+Mainly concerned with ROM analysis and modifications.
+Very experimental, only tested with a TDS744A.
+
+Unless specified otherwise, all code here is licensed under GPLv3.
+
+(c) fenugrec 2018
+
