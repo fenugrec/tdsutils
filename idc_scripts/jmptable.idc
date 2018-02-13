@@ -22,15 +22,33 @@ static parse_table(cur, elems) {
 	elems = elems - 1;
 	while (elems >= 0) {
 		dest = Word(cur + (elems * 2));
+		if (dest & 0x8000) {
+			//sign extend
+			dest = dest | ~0xFFFF;
+		}
 		MakeCode(cur + dest);
 		elems = elems - 1;
 	}
 	return;
 }
-	
+
+//search backwards to find an opcode that verifies ((opc & mask) == val).
+//Look back within "maxdist"; return position if found, BADADDR otherwise
+static opsearch_bt(cur, maxdist, mask, val) {
+	auto opc, end;
+	end = cur - maxdist;
+
+	for (; cur >= end; cur = cur - 2) {
+		opc = Word(cur);
+		if ((opc & mask) == val) {
+			return cur;
+		}
+	}
+	return BADADDR;
+}
 
 static main() {
-	auto cur, end;
+	auto cur, end, next;
 	auto pr;
 	auto opc, ext;
 
@@ -61,21 +79,45 @@ static main() {
 			continue;
 		}
 
-		//Message("hit @ %X\n", cur);
-		//make sure it's a jmp table : must have a cmp and moveq before.
-		opc = Word(cur - 0x0A);
-		if ((opc & 0xF038) != 0xB000) {
-			//not a CMP
-			continue;
-		}
-		opc = Word(cur - 0x0C);
-		if ((opc & 0xF100) != 0x7000) {
-			Message("not moveq / weird @ %X\n", cur);
-			continue;
+		//two cases : either "moveq; cmp" or "cmp.i"
+
+
+		next = opsearch_bt(cur, 0x0C, 0xF038, 0xB000);
+		if (next != BADADDR) {
+			//CMP found. We need a moveq
+			next = opsearch_bt(cur, 0x0E, 0xF100, 0x7000);
+			if (next == BADADDR) {
+				Message("not moveq / weird @ %X\n", cur);
+				continue;
+			}
+
+			//get imm
+			opc = Word(next);
+			opc = (opc & 0x00FF);
+
+		} else {
+			//not CMP, maybe CMPI
+			next = opsearch_bt(cur, 0x0C, 0xFF00, 0x0C00);
+			if (next == BADADDR) {
+				Message("no CMP @ %X", cur);
+				continue;
+			}
+
+			//it is a cmp.i; get immediate according to size
+			opc = (Word(next) & 0xC0) >> 6;
+			if (opc == 0) {
+				opc = Byte(next + 3);
+			} else if (opc == 1) {
+				opc = Word(next + 2);
+			} else if (opc == 2) {
+				opc = ((Word(next + 2) << 16) | Word(next + 4));
+			} else {
+				Message("bad cmpi lit\n");
+				continue;
+			}
 		}
 
-		//get table size
-		opc = (opc & 0x00FF) + 1;
+		opc = opc + 1;	//code uses bhi, so table size is + 1
 		Jump(cur);
 		pr=AskYN(1, form("tbl[%X] @ %X", opc, cur));
 		if (pr == -1) {
