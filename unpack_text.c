@@ -105,6 +105,8 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void 
 		break;
 	}
 
+	printf("\n");
+
 	//return string length probably
 	return (((u16) bdest & 0xFFFF) - (u16) arg8);
 }
@@ -138,8 +140,8 @@ void unpack_all(FILE *i_file, struct pack_meta *pm) {
 	pm->packed_t = &src[pm->ptext];
 
 	// test : call first with mflag = 1, bdest = 0
-	rv16 = _unpack_text(pm, rec_index + 2, 1, 0);
-	printf("ut returns %X\n", (unsigned) rv16);
+	rv16 = _unpack_text(pm, rec_index + 0x49, 1, 0);
+
 	return;
 }
 
