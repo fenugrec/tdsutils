@@ -121,8 +121,8 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void 
 
 	printf("\n");
 
-	//return string length probably
-	return (((u16) bdest & 0xFFFF) - (u16) arg8);
+	//return string length
+	return (u16) ((u8 *) bdest - (u8 *) arg8);
 }
 
 
