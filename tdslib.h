@@ -3,6 +3,7 @@
  * GPLv3
  */
 
+#include <assert.h>
 #include <stdio.h>	//just for FILE
 #include <stdint.h>
 
@@ -31,8 +32,9 @@ struct flashrom_hdr {
 /* struct SYMBOL in vxworks "symbol.h"
  * it was user-customizable and seems to have changed from vx 5.0 to vx 5.4.
  *
- * in  TDS744 1.1e, sizeof == 0x0E
+ * in  TDS744 1.1e, sizeof == 0x0E.
  */
+
 struct sym_entry {
 	uint32_t p_name;	/* string */
 	uint32_t p_obj;	/* addr of item */
@@ -40,7 +42,9 @@ struct sym_entry {
 	uint8_t b9;	/* ?? */
 	uint16_t wA;	/* ?? */
 	uint16_t wC;	/* ?? */
-};
+} __attribute__ ((packed));
+
+_Static_assert(sizeof(struct sym_entry) == 0x0E, "bad sym_entry size\n");
 
 /********** useful funcs ********/
 
