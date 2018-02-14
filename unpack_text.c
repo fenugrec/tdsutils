@@ -1,7 +1,14 @@
 /*
  * (c) fenugrec 2018
  * GPLv3
-
+ *
+ * Unpacks and lists all packed text records in a fw ROM.
+ *
+ * Uses the built-in symbol table to find everything, so
+ * only -f and -s need be specified. ex.:
+ *
+ * ./unpack_text -f TDS744A_ROM.bin -s 0x299292
+ *
  */
 
 
