@@ -11,6 +11,8 @@
 
 /********** ROM structures ******/
 
+#define ROM_BASE 0x01000000UL	//flash ROM loaded address
+
 /* first 0x2C bytes of a flash ROM.
  * the sizeof() of this struct may be incorrect
  */
@@ -95,3 +97,11 @@ const uint8_t *u32memstr(const uint8_t *buf, uint32_t buflen, const uint32_t nee
  */
 uint32_t find_pattern(const uint8_t *buf, uint32_t siz, unsigned patlen,
 			const uint16_t *pat, const uint16_t *mask);
+
+/** iterate through symbol table trying to match name.
+ *
+ * @param siz in bytes
+ * @param nlen strlen(name)
+ * @return file offset of entry; 0 if not found
+ */
+uint32_t find_sym(const uint8_t *buf, uint32_t sympos, uint32_t siz, const uint8_t *name, size_t nlen);

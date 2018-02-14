@@ -19,8 +19,6 @@
 
 #define file_maxsize (8*1024*1024UL)	//arbitrary 8MB limit
 
-#define ROM_BASE 0x01000000UL	//flash ROM loaded address
-
 /*** symbol names to retrieve required metadata */
 #define SYM_WORDSIZE "_Word_size"
 #define SYM_WORDMASK "_Word_mask"
@@ -127,31 +125,7 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void 
 	return (((u16) bdest & 0xFFFF) - (u16) arg8);
 }
 
-/** iterate through symbol table trying to match name.
- *
- * @param siz in bytes
- * @param nlen strlen(name)
- * @return file offset of entry; 0 if not found
- */
-u32 find_sym(const u8 *buf, u32 sympos, u32 siz, const u8 *name, size_t nlen) {
-	u32 cur;
 
-	for (cur = sympos; cur < siz; cur += sizeof(struct sym_entry)) {
-		// cheat : don't parse whole entry
-
-		u32 pname = reconst_32(&buf[cur + offsetof(struct sym_entry, p_name)]);
-		pname -= ROM_BASE;	//now a file offset
-		if ((pname + nlen) > siz) {
-			//invalid; continue anyway
-			continue;
-		}
-		if (memcmp(&buf[pname], name, nlen) == 0) {
-			//found !
-			return cur;
-		}
-	}
-	return 0;
-}
 
 /** helper for u16 meta parsage
  *

@@ -139,8 +139,30 @@ void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh) {
 	return;
 }
 
+
 void parse_sym(const u8 *buf, struct sym_entry *se) {
 	se->p_name = reconst_32(&buf[offsetof(struct sym_entry, p_name)]);
 	se->p_obj = reconst_32(&buf[offsetof(struct sym_entry, p_obj)]);
 	return;
+}
+
+
+u32 find_sym(const u8 *buf, u32 sympos, u32 siz, const u8 *name, size_t nlen) {
+	u32 cur;
+
+	for (cur = sympos; cur < siz; cur += sizeof(struct sym_entry)) {
+		// cheat : don't parse whole entry
+
+		u32 pname = reconst_32(&buf[cur + offsetof(struct sym_entry, p_name)]);
+		pname -= ROM_BASE;	//now a file offset
+		if ((pname + nlen) > siz) {
+			//invalid; continue anyway
+			continue;
+		}
+		if (memcmp(&buf[pname], name, nlen) == 0) {
+			//found !
+			return cur;
+		}
+	}
+	return 0;
 }
