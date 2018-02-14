@@ -97,9 +97,9 @@ static main() {
 
 		} else {
 			//not CMP, maybe CMPI
-			next = opsearch_bt(cur, 0x0C, 0xFF00, 0x0C00);
+			next = opsearch_bt(cur, 0x0E, 0xFF00, 0x0C00);
 			if (next == BADADDR) {
-				Message("no CMP @ %X", cur);
+				Message("no CMPI @ %X\n", cur);
 				continue;
 			}
 
