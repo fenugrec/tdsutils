@@ -63,20 +63,12 @@ static check_align4(cur) {
 }
 
 
-
-static main() {
-	auto occ;
-	auto cur, end;
+static findalign(cur, end) {
 	auto tflags;
 	auto pr;
+	auto occ;
 
-	cur = ScreenEA();
-	
-	end = SegEnd(cur);
-	if (end == BADADDR) {
-		Message("outside of a seg ?");
-		return;
-	}
+	occ = 0;
 
 	while (cur < end) {
 		// jump to next transition from defined -> undefined
@@ -99,7 +91,11 @@ static main() {
 
 		 // odd address ?
 		if (cur & 1) {
-			if (check_align2(cur) == -1) return;
+			pr = check_align2(cur);
+			if (pr == -1) return;
+			if (pr == 1) {
+				occ = occ + 1;
+			}
 			continue;
 		}
 
@@ -107,7 +103,29 @@ static main() {
 		if (Byte(cur + 1) != 0) {
 			continue;
 		}
-		if (check_align4(cur) == -1) return;
+		pr = check_align4(cur);
+		if (pr == -1) return;
+		if (pr == 1) {
+			occ = occ + 1;
+		}
+
 
 	}
+
+	return occ;
+}
+
+static main() {
+	auto cur, end;
+
+	cur = ScreenEA();
+	
+	end = SegEnd(cur);
+	if (end == BADADDR) {
+		Message("outside of a seg ?\n");
+		return;
+	}
+
+	Message("parsed %X\n", findalign(cur, end));
+	return;
 }
