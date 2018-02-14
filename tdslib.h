@@ -27,9 +27,28 @@ struct flashrom_hdr {
 	/* arguably, the 3 copyright strings are probably part of the hdr */
 };
 
+
+/* struct SYMBOL in vxworks "symbol.h"
+ * it was user-customizable and seems to have changed from vx 5.0 to vx 5.4.
+ *
+ * in  TDS744 1.1e, sizeof == 0x0E
+ */
+struct sym_entry {
+	uint32_t p_name;	/* string */
+	uint32_t p_obj;	/* addr of item */
+	uint8_t b8;	/* ?? */
+	uint8_t b9;	/* ?? */
+	uint16_t wA;	/* ?? */
+	uint16_t wC;	/* ?? */
+};
+
 /********** useful funcs ********/
 
+/** parse flash ROM header into fh struct */
 void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh);
+
+/** parse single symbol table entry */
+void parse_sym(const uint8_t *buf, struct sym_entry *se);
 
 /** get file length but restore position */
 uint32_t flen(FILE *hf);

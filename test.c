@@ -12,7 +12,7 @@
 
 
 /* sample flash ROM header, taken from TDS744A 1.1e */
-static const u8 hexData[0x1aa] = {
+static const u8 sample_flash_hdr[0x1aa] = {
   0x4E, 0x71, 0x4E, 0xF9, 0x01, 0x00, 0x17, 0x4E, 0x01, 0x00, 0x01, 0xAA, 0x01, 0x27, 0x50, 0xAA,
   0x05, 0x00, 0x10, 0x00, 0x05, 0x03, 0x73, 0xD0, 0x9A, 0x8A, 0x01, 0x00, 0x00, 0x2C, 0x01, 0x00,
   0x01, 0xB0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x36, 0x6E, 0x43, 0x4F, 0x50, 0x59,
@@ -54,7 +54,7 @@ bool test_parse_romhdr(void) {
 		// in theory, unlisted initializers here should be initted to 0 ? C99 6.7.8 #19
 	};
 
-	parse_romhdr(hexData, &fh);
+	parse_romhdr(sample_flash_hdr, &fh);
 
 	if (memcmp(&fh, &want, sizeof(struct flashrom_hdr)) != 0) {
 		printf("parse_romhdr mismatch !\n");
@@ -63,10 +63,34 @@ bool test_parse_romhdr(void) {
 	return 1;
 }
 
+
+
+/* sample symlist entry, taken from TDS744A 1.1e */
+static const u8 sample_sym[] = {
+  0x01, 0x27, 0x47, 0x72, 0x01, 0x25, 0x72, 0xEE, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+bool test_parse_sym(void) {
+	struct sym_entry se = {0};
+	struct sym_entry want = {
+		.p_name = 0x1274772,
+		.p_obj = 0x12572ee
+	};
+
+	parse_sym(sample_sym, &se);
+
+	if (memcmp(&se, &want, sizeof(struct sym_entry)) != 0) {
+		printf("parse_sym mismatch !\n");
+		return 0;
+	}
+	return 1;
+
+}
+
 int main(int argc, char **argv) {
 	(void) argc;
 	(void) argv;
 
 	test_parse_romhdr();
+	test_parse_sym();
 	return 0;
 }

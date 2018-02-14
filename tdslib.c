@@ -136,4 +136,11 @@ void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh) {
 	fh->bss_start = reconst_32(&buf[offsetof(struct flashrom_hdr, bss_start)]);
 	fh->body_cks = reconst_32(&buf[offsetof(struct flashrom_hdr, body_cks)]);
 	fh->hdr_cks = reconst_16(&buf[offsetof(struct flashrom_hdr, hdr_cks)]);
+	return;
+}
+
+void parse_sym(const u8 *buf, struct sym_entry *se) {
+	se->p_name = reconst_32(&buf[offsetof(struct sym_entry, p_name)]);
+	se->p_obj = reconst_32(&buf[offsetof(struct sym_entry, p_obj)]);
+	return;
 }
