@@ -121,6 +121,7 @@ void unpack_all(FILE *i_file, struct pack_meta *pm) {
 	file_len = flen(i_file);
 	if ((!file_len) || (file_len > file_maxsize)) {
 		printf("huge file (length %lu)\n", (unsigned long) file_len);
+		return;
 	}
 
 	u8 *src = malloc(file_len);
