@@ -26,12 +26,18 @@
 #define SYM_MAXTOK "_Max_token"
 #define SYM_TOKADDR "_Text_token"
 #define SYM_PTEXT "_Packed_text"
+#define SYM_RECISIZ "_recIndexSize"
+#define SYM_RECINDEX "_RecIndex"
 
 /** static init to 0 = safe */
 struct pack_meta {
 	u32 symloc;	//file offset of symbol table
 
 	//these can be filled after buffering the ROM
+	u32 a_recindex;	//fileofs of record index
+	u32 a_recisiz; //fileofs of rec index size
+	u32 recisiz;
+
 	u32 a_tokbase;	//fileofs of tokbase
 	u32 tokbase;
 	u32 a_maxtok;	//fileofs of maxtok
@@ -39,11 +45,13 @@ struct pack_meta {
 	u32 a_tok;	//file ofs of text_token
 	u32 a_ptext;	//file ofs of packed_text
 
+	u16 word_size;
+	u16 word_mask;
+
+
 	const u8 *text_tok;	//table of tokens
 	const u8 *packed_t;	//raw packed text data
 
-	u16 word_size;
-	u16 word_mask;
 };
 
 /* global data for mangle() */
@@ -79,7 +87,11 @@ u32 mangle(const struct pack_meta *pm, u32 val) {
 	return val;
 }
 
-/* TODO : confirm u16 vs u32 arg pushing
+/** unpack selected chunk
+ *
+ * @param offs_packed file offs of chunk within _packed_text
+ *
+ * @return strlen
  *
  * if (getlen) : arg8 is u16 / don't care; set to 0.
  * if (!getlen) : arg8 is (u8 *) for destination string
@@ -95,9 +107,7 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void 
 	pd = &(pm->packed_t[offs_packed]);
 
 	if (!offs_packed) return 0;
-	//TODO : bounds check against runtime-calculated _Text_size ?
-
-	printf("upt @ %lX: \"", (unsigned long) offs_packed);
+	//TODO : bounds check against _Text_size ?
 
 	while (1) {
 		u32 d0;
@@ -206,6 +216,8 @@ static bool parse_meta(const u8 *buf, u32 siz, struct pack_meta *pm) {
 	rv &= pm_parse32(buf, siz, &pm->a_ptext, pm, SYM_PTEXT);
 	rv &= pm_parse16v(buf, siz, &pm->word_size, pm, SYM_WORDSIZE);
 	rv &= pm_parse16v(buf, siz, &pm->word_mask, pm, SYM_WORDMASK);
+	rv &= pm_parse32(buf, siz, &pm->a_recindex, pm, SYM_RECINDEX);
+	rv &= pm_parse32(buf, siz, &pm->a_recisiz, pm, SYM_RECISIZ);
 
 	if (!rv) {
 		return 0;
@@ -213,6 +225,7 @@ static bool parse_meta(const u8 *buf, u32 siz, struct pack_meta *pm) {
 
 	pm->tokbase = reconst_32(&buf[pm->a_tokbase]);
 	pm->maxtok = reconst_32(&buf[pm->a_maxtok]);
+	pm->recisiz = reconst_32(&buf[pm->a_recisiz]);
 	pm->text_tok = &buf[pm->a_tok];
 	pm->packed_t = &buf[pm->a_ptext];
 	return 1;
@@ -220,7 +233,7 @@ static bool parse_meta(const u8 *buf, u32 siz, struct pack_meta *pm) {
 
 static void unpack_all(FILE *i_file, struct pack_meta *pm) {
 	u32 file_len;
-	u16 rv16;
+
 	u16 rec_index = 0;
 
 	rewind(i_file);
@@ -248,8 +261,16 @@ static void unpack_all(FILE *i_file, struct pack_meta *pm) {
 		return;
 	}
 
-	// test : call first with mflag = 1, bdest = 0
-	rv16 = _unpack_text(pm, rec_index + 0x49, 1, 0);
+	// to work properly, index 0 is empty and points 2 bytes before recindex
+	for (rec_index = 1; rec_index <= pm->recisiz; rec_index++) {
+		u16 recpos;
+
+		recpos = reconst_16(&src[pm->a_recindex + (rec_index * 2) - 2]);
+		printf("\n\n****** record %u @ packed[%X] ******\n",
+				rec_index, (unsigned) recpos);
+		(void) _unpack_text(pm, recpos, 1, 0);
+		printf("\n");
+	}
 
 	return;
 }
