@@ -3,10 +3,13 @@
  * GPLv3
  */
 
+#include <stddef.h>	//for offsetof
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "stypes.h"
+#include "tdslib.h"
 
 uint32_t reconst_32(const uint8_t *buf) {
 	// ret 4 bytes at *buf with SH endianness
@@ -122,4 +125,15 @@ uint32_t find_pattern(const uint8_t *buf, uint32_t siz, unsigned patlen,
 	}
 	//no match : ret -1 (illegal val)
 	return -1;
+}
+
+
+void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh) {
+	fh->rominit = reconst_32(&buf[offsetof(struct flashrom_hdr, rominit)]);
+	fh->bodyck_start = reconst_32(&buf[offsetof(struct flashrom_hdr, bodyck_start)]);
+	fh->idata_start = reconst_32(&buf[offsetof(struct flashrom_hdr, idata_start)]);
+	fh->sdata = reconst_32(&buf[offsetof(struct flashrom_hdr, sdata)]);
+	fh->bss_start = reconst_32(&buf[offsetof(struct flashrom_hdr, bss_start)]);
+	fh->body_cks = reconst_32(&buf[offsetof(struct flashrom_hdr, body_cks)]);
+	fh->hdr_cks = reconst_16(&buf[offsetof(struct flashrom_hdr, hdr_cks)]);
 }

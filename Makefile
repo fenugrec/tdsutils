@@ -1,13 +1,15 @@
 CC = gcc
-BASICFLAGS = -std=gnu99 -Wall -Wextra -Wpedantic 
+BASICFLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
 OPTFLAGS = -g
 #extra flags for profiling
 #EXFLAGS = -fprofile-arcs -ftest-coverage
 CFLAGS = $(BASICFLAGS) $(OPTFLAGS) $(EXFLAGS)
 
-TGTLIST = unpack_text
+TGTLIST = unpack_text test
 
 all: $(TGTLIST)
+
+test:	test.c tdslib.c
 
 unpack_text: unpack_text.c tdslib.c
 

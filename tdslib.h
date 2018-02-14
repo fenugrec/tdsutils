@@ -8,6 +8,29 @@
 
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
 
+/********** ROM structures ******/
+
+/* first 0x2C bytes of a flash ROM.
+ * the sizeof() of this struct may be incorrect
+ */
+struct flashrom_hdr {
+	uint16_t	nop;	/* dummy */
+	uint16_t	jmp;	/* dummy */
+	uint32_t rominit;	/* points to _romInit entry point */
+	uint32_t bodyck_start;	/* startCheckSumming */
+	uint32_t	idata_start;	/* initialized data in ROM */
+	uint32_t	sdata;		/* destination for idata in RAM */
+	uint32_t	bss_start;	/* in RAM */
+	uint32_t	body_cks;
+	uint8_t	unk[14];	/* some padding & garbage */
+	uint16_t	hdr_cks;
+	/* arguably, the 3 copyright strings are probably part of the hdr */
+};
+
+/********** useful funcs ********/
+
+void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh);
+
 /** get file length but restore position */
 uint32_t flen(FILE *hf);
 
