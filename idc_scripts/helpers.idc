@@ -106,6 +106,7 @@ static add_chunks(funcstart, tblstart, numentries) {
 	auto functail;
 	auto cname;
 	auto id;
+	auto chunk_start;
 
 	cur = tblstart;
 	functail = find_functail(cur);
@@ -113,12 +114,15 @@ static add_chunks(funcstart, tblstart, numentries) {
 	for (id = 0; id < numentries; id = id + 1){
 		offs = Word(cur);
 		
-		Message("adding chunk #%X (%X-%X)\n", id, tblstart + offs, functail);
-		AppendFchunk(funcstart, tblstart + offs, functail);
+		chunk_start = tblstart + offs;
+
+		if (!AppendFchunk(funcstart, chunk_start, functail)) {
+			Message("failed to add chunk #%X (%X-%X)\n", id, chunk_start, functail);
+		}
 
 		//name pattern : jmptbl_<entry#>
 		cname = form("jmptbl_%02X", id);
-		MakeNameEx(tblstart + offs, cname, SN_LOCAL);
+		MakeNameEx(chunk_start, cname, SN_LOCAL | SN_NOWARN);
 
 		cur = cur + 2;
 	}	//while
