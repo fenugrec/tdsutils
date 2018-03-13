@@ -11,32 +11,6 @@
 
 
 
-//parse jmp table entries to add each chunk to the given func.
-//tblstart is the first byte of the array of offsets
-static add_chunks(funcstart, tblstart, numentries) {
-	auto offs;
-	auto cur;
-	auto functail;
-
-	cur = tblstart;
-	functail = find_functail(cur);
-
-	while (numentries > 0) {
-		offs = Word(cur);
-		
-		Message("adding chunks %X-%X\n", tblstart + offs, functail);
-		AppendFchunk(funcstart, tblstart + offs, functail);
-
-		numentries = numentries - 1;
-		cur = cur + 2;
-	}	//while
-
-	return;
-}
-
-
-
-
 //mark the func @ cur manually by finding problematic jmp table.
 //Advances cursor to end of new func; ret 1 to continue, 0 to cancel
 #define MAX_TBLDIST	0x180	//jmptable must be close to func entry

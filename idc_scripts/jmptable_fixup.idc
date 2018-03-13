@@ -11,37 +11,6 @@
 #include "helpers.idc"
 
 
-//parse jmp table entries to add each chunk to the given func.
-//tblstart is the first byte of the array of offsets
-//"funcstart" can be any byte within the existing function
-//(AppendFchunk requirement)
-static add_chunks(funcstart, tblstart, numentries) {
-	auto offs;
-	auto cur;
-	auto functail;
-	auto cname;
-	auto id;
-
-	cur = tblstart;
-	functail = find_functail(cur);
-
-	for (id = 0; id < numentries; id = id + 1){
-		offs = Word(cur);
-		
-		Message("adding chunk #%X (%X-%X)\n", id, tblstart + offs, functail);
-		AppendFchunk(funcstart, tblstart + offs, functail);
-
-		//name pattern : jmptbl_<entry#>
-		cname = form("jmptbl_%02X", id);
-		MakeNameEx(tblstart + offs, cname, SN_LOCAL);
-
-		cur = cur + 2;
-	}	//while
-
-	return;
-}
-
-
 static main() {
 	auto cur, end, next;
 	auto pr;
