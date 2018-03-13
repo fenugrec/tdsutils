@@ -69,22 +69,46 @@ static get_jtsize(jmploc) {
 
 
 
-//find main function tail after a jmp table.
-//i.e. return the address of "exit" (BADADDR if failed)
+//find main function tail after a jmp table.  (BADADDR if failed)
+// Primary technique : iterate over function chunks to find the last.
+// FindFuncEnd() doesn't work as expected (it returns the offset of the jmp opcode since
+// that's how the func is initially defined)
+//
+//plan B: return the address of "exit" with this pattern:
 //0000:0121AD42 6200 01CC                 bhi.w   exit
 //0000:0121AD46 323B 0A06                 move.w  word_121AD4E(pc,d0.l*2),d1
 //0000:0121AD4A 4EFB 1002                 jmp     word_121AD4E(pc,d1.w)
 //0000:0121AD4E 0010 0096+word_121AD4E:	;jmp table here
+//this breaks if bhi jumps before the jmptable !
 #define BHI_MAXDIST	0x0E
 static find_functail(jmploc) {
 	auto bh_loc;
 	auto disp;
+	auto functail;
+	auto cur;
 
+	cur = FirstFuncFchunk(jmploc);	//start at func entry point
+	functail = jmploc;
+
+	while (cur != BADADDR) {
+		cur = NextFuncFchunk(jmploc, cur);
+		if (cur != BADADDR) {
+			functail = cur;
+		}
+	}
+
+	if (functail > jmploc) {
+		functail = GetFchunkAttr(functail, FUNCATTR_END);
+		Message("functail %X\n", functail);
+		return functail;
+	}
+
+	//plan B: rely on bhi
 	//bhi : 0x62 XX (8-bit disp) ; or 0x62 00 YY YY (16-bit disp)
 	bh_loc = opsearch_bt(jmploc, BHI_MAXDIST, 0xFF00, 0x6200);
 	if (bh_loc == BADADDR) {
 		Message("no bhi\n");
-		return bh_loc;
+		return BADADDR;
 	}
 
 	// calculate displacement
@@ -109,7 +133,8 @@ static add_chunks(funcstart, tblstart, numentries) {
 	auto chunk_start, chunk_end;
 
 	cur = tblstart;
-	functail = find_functail(cur);
+	functail = find_functail(cur - 4);
+	if (functail == BADADDR) return;
 
 	for (id = 0; id < numentries; id = id + 1){
 		offs = Word(cur);

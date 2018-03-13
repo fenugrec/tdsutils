@@ -16,7 +16,6 @@ static main() {
 	auto pr;
 	auto opc;
 	auto jtsize;
-	auto functail;
 
 	cur = ScreenEA();
 
