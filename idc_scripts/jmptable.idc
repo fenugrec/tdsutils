@@ -14,13 +14,7 @@
 static parse_table(cur, elems) {
 	auto dest;
 
-	if (!MakeWord(cur)) {
-		Message("can't define table @ %X\n", cur);
-	}
-
-	if (!MakeArray(cur, elems)) {
-		Message("can't create array @ %X\n", cur);
-	}
+	jmptable_mkarray(cur, elems);
 
 	elems = elems - 1;
 	while (elems >= 0) {

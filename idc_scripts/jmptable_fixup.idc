@@ -42,6 +42,7 @@ static main() {
 	jtsize = get_jtsize(cur);
 	if (jtsize == BADADDR) return;
 
+	jmptable_mkarray(cur + 4, jtsize);
 	add_chunks(cur, cur + 4, jtsize);
 	
 	return;

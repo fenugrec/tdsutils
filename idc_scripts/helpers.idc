@@ -119,6 +119,19 @@ static find_functail(jmploc) {
 	return (bh_loc + disp + 2);
 }
 
+//make a u16 array out of the table offsets fgj
+//silently fails
+static jmptable_mkarray(tblstart, numentries) {
+	if (!MakeWord(tblstart)) {
+		Message("can't define word @ %X\n", tblstart);
+		return;
+	}
+
+	if (!MakeArray(tblstart, numentries)) {
+		Message("can't create array @ %X\n", tblstart);
+	}
+	return;
+}
 
 //parse jmp table entries to add each chunk to the given func.
 //tblstart is the first byte of the array of offsets

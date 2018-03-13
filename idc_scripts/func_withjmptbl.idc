@@ -50,6 +50,8 @@ static markfunc(start) {
 			return 0;
 		}
 		if (pr == 1) {
+			jmptable_mkarray(cur + 4, tblsiz);
+
 			MakeFunction(start, cur + 2);
 			//also add chunks for all the tails
 			add_chunks(start, cur + 4, tblsiz);
