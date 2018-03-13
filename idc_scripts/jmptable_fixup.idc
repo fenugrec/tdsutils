@@ -1,5 +1,7 @@
 // fixup jmp tables that don't have all (or any) chunks appended to the function
 // Run with the cursor on the "jmp" opcode prior to table
+//
+// bonus : defines weak names for each chunk
 
 // (c) fenugrec 2018
 
@@ -17,17 +19,22 @@ static add_chunks(funcstart, tblstart, numentries) {
 	auto offs;
 	auto cur;
 	auto functail;
+	auto cname;
+	auto id;
 
 	cur = tblstart;
 	functail = find_functail(cur);
 
-	while (numentries > 0) {
+	for (id = 0; id < numentries; id = id + 1){
 		offs = Word(cur);
 		
-		Message("adding chunks %X-%X\n", tblstart + offs, functail);
+		Message("adding chunk #%X (%X-%X)\n", id, tblstart + offs, functail);
 		AppendFchunk(funcstart, tblstart + offs, functail);
 
-		numentries = numentries - 1;
+		//name pattern : jmptbl_<entry#>
+		cname = form("jmptbl_%02X", id);
+		MakeNameEx(tblstart + offs, cname, SN_LOCAL);
+
 		cur = cur + 2;
 	}	//while
 
@@ -67,7 +74,6 @@ static main() {
 	jtsize = get_jtsize(cur);
 	if (jtsize == BADADDR) return;
 
-	Message("tbl[%X]\n", jtsize);
 	add_chunks(cur, cur + 4, jtsize);
 	
 	return;
