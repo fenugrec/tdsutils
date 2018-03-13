@@ -26,7 +26,9 @@ static parse_table(cur, elems) {
 	while (elems >= 0) {
 		dest = Word(cur + (elems * 2));
 		if (dest & 0x8000) {
-			//sign extend
+			//sign extend ? such not !
+			Message("fix this ! sign extend or not ?\n");
+			return;
 			dest = dest | ~0xFFFF;
 		}
 		MakeCode(cur + dest);
