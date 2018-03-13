@@ -1,10 +1,13 @@
 //jmptable
 
-// find jump tables ; IDA isn't clever enough
+// find jump tables and mark as data + code ; IDA isn't clever enough
+// note, doesn't mark the function. See func_withjmptbl.idc
 // (c) fenugrec 2018
 
 
 #include <idc.idc>
+
+#include "helpers.idc"
 
 //parse jmp table, marking code for every index.
 //cur must be the first offset of the table (i.e. right after JMP ...)
@@ -32,20 +35,6 @@ static parse_table(cur, elems) {
 	return;
 }
 
-//search backwards to find an opcode that verifies ((opc & mask) == val).
-//Look back within "maxdist"; return position if found, BADADDR otherwise
-static opsearch_bt(cur, maxdist, mask, val) {
-	auto opc, end;
-	end = cur - maxdist;
-
-	for (; cur >= end; cur = cur - 2) {
-		opc = Word(cur);
-		if ((opc & mask) == val) {
-			return cur;
-		}
-	}
-	return BADADDR;
-}
 
 static main() {
 	auto cur, end, next;
@@ -79,45 +68,11 @@ static main() {
 			continue;
 		}
 
-		//two cases : either "moveq; cmp" or "cmp.i"
-
-
-		next = opsearch_bt(cur, 0x0C, 0xF038, 0xB000);
-		if (next != BADADDR) {
-			//CMP found. We need a moveq
-			next = opsearch_bt(cur, 0x0E, 0xF100, 0x7000);
-			if (next == BADADDR) {
-				Message("not moveq / weird @ %X\n", cur);
-				continue;
-			}
-
-			//get imm
-			opc = Word(next);
-			opc = (opc & 0x00FF);
-
-		} else {
-			//not CMP, maybe CMPI
-			next = opsearch_bt(cur, 0x0E, 0xFF00, 0x0C00);
-			if (next == BADADDR) {
-				Message("no CMPI @ %X\n", cur);
-				continue;
-			}
-
-			//it is a cmp.i; get immediate according to size
-			opc = (Word(next) & 0xC0) >> 6;
-			if (opc == 0) {
-				opc = Byte(next + 3);
-			} else if (opc == 1) {
-				opc = Word(next + 2);
-			} else if (opc == 2) {
-				opc = ((Word(next + 2) << 16) | Word(next + 4));
-			} else {
-				Message("bad cmpi lit\n");
-				continue;
-			}
+		opc = get_jtsize(cur);
+		if (opc == BADADDR) {
+			continue;
 		}
 
-		opc = opc + 1;	//code uses bhi, so table size is + 1
 		Jump(cur);
 		pr=AskYN(1, form("tbl[%X] @ %X", opc, cur));
 		if (pr == -1) {

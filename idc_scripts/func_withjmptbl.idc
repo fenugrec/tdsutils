@@ -1,102 +1,13 @@
 //mark a function containing a jmp table
 // (normally fails due to the jmp table breaking code flow)
 
-// jumps to 
+// searches next non-function code
 // (c) fenugrec 2018
 
 
 #include <idc.idc>
 
-//search backwards to find an opcode that verifies ((opc & mask) == val).
-//Look back within "maxdist"; return position if found, BADADDR otherwise
-static opsearch_bt(cur, maxdist, mask, val) {
-	auto opc, end;
-	end = cur - maxdist;
-
-	for (; cur >= end; cur = cur - 2) {
-		opc = Word(cur);
-		if ((opc & mask) == val) {
-			return cur;
-		}
-	}
-	return BADADDR;
-}
-
-
-//return # of elements of the jump table that starts @ cur
-//return BADADDR if failed
-static get_jtsize(cur) {
-	auto opc;
-	auto next;
-
-	// 1) backtrack to find either "moveq; cmp" or "cmp.i"
-	next = opsearch_bt(cur, 0x0C, 0xF038, 0xB000);
-	if (next != BADADDR) {
-		//CMP found. We need a moveq
-		next = opsearch_bt(cur, 0x0E, 0xF100, 0x7000);
-		if (next == BADADDR) {
-			Message("not moveq / weird @ %X\n", cur);
-			return BADADDR;
-		}
-
-		//get imm
-		opc = Word(next);
-		opc = (opc & 0x00FF);
-	} else {
-		//not CMP, maybe CMPI
-		next = opsearch_bt(cur, 0x0E, 0xFF00, 0x0C00);
-		if (next == BADADDR) {
-			Message("no CMPI @ %X\n", cur);
-			return BADADDR;
-		}
-
-		//it is a cmp.i; get immediate according to size
-		opc = (Word(next) & 0xC0) >> 6;
-		if (opc == 0) {
-			opc = Byte(next + 3);
-		} else if (opc == 1) {
-			opc = Word(next + 2);
-		} else if (opc == 2) {
-			opc = ((Word(next + 2) << 16) | Word(next + 4));
-		} else {
-			Message("bad cmpi lit\n");
-			return BADADDR;
-		}
-	}
-	opc = opc + 1;	//code uses bhi, so table size is + 1
-	return opc;
-}
-
-
-
-
-
-//find main function tail.  
-//i.e. return the address of "exit" (BADADDR if failed)
-//0000:0121AD42 6200 01CC                 bhi.w   exit
-//0000:0121AD46 323B 0A06                 move.w  word_121AD4E(pc,d0.l*2),d1
-//0000:0121AD4A 4EFB 1002                 jmp     word_121AD4E(pc,d1.w)
-//0000:0121AD4E 0010 0096+word_121AD4E:	;jmp table here
-#define BHI_MAXDIST	0x0E
-static find_functail(jmploc) {
-	auto bh_loc;
-	auto disp;
-
-	//bhi : 0x62 XX (8-bit disp) ; or 0x62 00 YY YY (16-bit disp)
-	bh_loc = opsearch_bt(jmploc, BHI_MAXDIST, 0xFF00, 0x6200);
-	if (bh_loc == BADADDR) {
-		Message("no bhi\n");
-		return bh_loc;
-	}
-
-	// calculate displacement
-	disp = Byte(bh_loc + 1);
-	if (disp == 0) {
-		disp = Word(bh_loc + 2);
-	}
-	return (bh_loc + disp + 2);
-}
-
+#include "helpers.idc"
 
 
 
