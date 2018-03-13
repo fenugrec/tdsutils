@@ -20,22 +20,22 @@ static opsearch_bt(cur, maxdist, mask, val) {
 }
 
 
-//return # of elements of the jump table that starts @ cur
+//return # of elements of the jump table (jmploc must point at the jmp opcode)
 //return BADADDR if failed
 #define JTSIZE_MAXDIST	0x0E	//how far to backtrack
-static get_jtsize(cur) {
+static get_jtsize(jmploc) {
 	auto opc;
 	auto next;
 
 	// 1) backtrack to find either "moveq; cmp" or "cmp.i"
 
 	//
-	next = opsearch_bt(cur, JTSIZE_MAXDIST, 0xF038, 0xB000);
+	next = opsearch_bt(jmploc, JTSIZE_MAXDIST, 0xF038, 0xB000);
 	if (next != BADADDR) {
 		//CMP found. We need a moveq
-		next = opsearch_bt(cur, JTSIZE_MAXDIST, 0xF100, 0x7000);
+		next = opsearch_bt(jmploc, JTSIZE_MAXDIST, 0xF100, 0x7000);
 		if (next == BADADDR) {
-			Message("not moveq / weird @ %X\n", cur);
+			Message("not moveq / weird @ %X\n", jmploc);
 			return BADADDR;
 		}
 
@@ -44,9 +44,9 @@ static get_jtsize(cur) {
 		opc = (opc & 0x00FF);
 	} else {
 		//not CMP, maybe CMPI
-		next = opsearch_bt(cur, JTSIZE_MAXDIST, 0xFF00, 0x0C00);
+		next = opsearch_bt(jmploc, JTSIZE_MAXDIST, 0xFF00, 0x0C00);
 		if (next == BADADDR) {
-			Message("no CMPI @ %X\n", cur);
+			Message("no CMPI @ %X\n", jmploc);
 			return BADADDR;
 		}
 
