@@ -106,7 +106,7 @@ static add_chunks(funcstart, tblstart, numentries) {
 	auto functail;
 	auto cname;
 	auto id;
-	auto chunk_start;
+	auto chunk_start, chunk_end;
 
 	cur = tblstart;
 	functail = find_functail(cur);
@@ -115,9 +115,15 @@ static add_chunks(funcstart, tblstart, numentries) {
 		offs = Word(cur);
 		
 		chunk_start = tblstart + offs;
+		chunk_end = NextFchunk(chunk_start);
+		//limit Append chunk bounds to smallest of functail or the next chunk.
+		if ((chunk_end == BADADDR)  ||
+			(chunk_end > functail)) {
+			chunk_end = functail;
+		}
 
-		if (!AppendFchunk(funcstart, chunk_start, functail)) {
-			Message("failed to add chunk #%X (%X-%X)\n", id, chunk_start, functail);
+		if (!AppendFchunk(funcstart, chunk_start, chunk_end)) {
+			Message("failed to add chunk #%X (%X-%X)\n", id, chunk_start, chunk_end);
 		}
 
 		//name pattern : jmptbl_<entry#>
