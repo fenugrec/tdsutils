@@ -123,6 +123,7 @@ static add_chunks(funcstart, tblstart, numentries) {
 		cur = cur + 2;
 	}	//while
 
+	wait();	//make sure analysis is finished
 	return;
 }
 
