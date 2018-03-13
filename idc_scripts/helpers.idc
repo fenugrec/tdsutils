@@ -147,6 +147,9 @@ static add_chunks(funcstart, tblstart, numentries) {
 			chunk_end = functail;
 		}
 
+		//make sure it's marked as code
+		MakeCode(chunk_start);
+
 		if (!AppendFchunk(funcstart, chunk_start, chunk_end)) {
 			Message("failed to add chunk #%X (%X-%X)\n", id, chunk_start, chunk_end);
 		}
