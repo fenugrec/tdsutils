@@ -7,9 +7,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>	//malloc
 
 #include "stypes.h"
 #include "tdslib.h"
+
+#define file_maxsize (8*1024*1024UL)	//arbitrary 8MB limit
 
 uint32_t reconst_32(const uint8_t *buf) {
 	// ret 4 bytes at *buf with SH endianness
@@ -165,4 +168,50 @@ u32 find_sym(const u8 *buf, u32 sympos, u32 siz, const u8 *name, size_t nlen) {
 		}
 	}
 	return 0;
+}
+
+struct flashrom *loadrom(FILE *romfil) {
+	u32 file_len;
+	struct flashrom * flrom;
+
+	rewind(romfil);
+	file_len = flen(romfil);
+	if ((!file_len) || (file_len > file_maxsize)) {
+		printf("huge file (length %lu)\n", (unsigned long) file_len);
+		return NULL;
+	}
+
+	flrom = malloc(sizeof(struct flashrom));
+	if (flrom) {
+		printf("malloc choke\n");
+		return NULL;
+	}
+
+	u8 *src = malloc(file_len);
+	if (!src) {
+		free(flrom);
+		printf("malloc choke\n");
+		return NULL;
+	}
+
+	/* load whole ROM */
+	if (fread(src,1,file_len,romfil) != file_len) {
+		printf("trouble reading\n");
+		free(flrom);
+		free(src);
+		return NULL;
+	}
+
+	flrom->rom = src;
+	flrom->siz = file_len;
+
+	parse_romhdr(src, &flrom->fh);
+	return flrom;
+}
+
+
+void closerom(struct flashrom *flrom) {
+	free(flrom->rom);
+	free(flrom);
+	return;
 }

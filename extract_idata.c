@@ -17,50 +17,33 @@
 #include "stypes.h"
 #include "tdslib.h"
 
-#define file_maxsize (8*1024*1024UL)	//arbitrary 8MB limit
-
 #define ROM_BASE 0x01000000UL	//flash ROM loaded address
 
 
 void extract_idata(FILE *ifile, FILE *ofile) {
-	u32 file_len;
 	u32 idata_siz;
-	struct flashrom_hdr fh;
+	struct flashrom *flrom;
+	struct flashrom_hdr *fh;	//shorthand
 
-	rewind(ifile);
-	file_len = flen(ifile);
-	if ((!file_len) || (file_len > file_maxsize)) {
-		printf("huge file (length %lu)\n", (unsigned long) file_len);
-		return;
-	}
+	flrom = loadrom(ifile);
+	if (!flrom) return;
 
-	u8 *src = malloc(file_len);
-	if (!src) {
-		printf("malloc choke\n");
-		return;
-	}
+	fh = &flrom->fh;
 
-	/* load whole ROM */
-	if (fread(src,1,file_len,ifile) != file_len) {
-		printf("trouble reading\n");
-		free(src);
-		return;
-	}
-
-	parse_romhdr(src, &fh);
-
-	idata_siz = fh.bss_start - fh.sdata;
+	idata_siz = fh->bss_start - fh->sdata;
 		/* sanity checks */
-	if (	(fh.idata_start < ROM_BASE) ||
-			((fh.idata_start - ROM_BASE + idata_siz) >= file_len)) {
+	if (	(fh->idata_start < ROM_BASE) ||
+			((fh->idata_start - ROM_BASE + idata_siz) >= flrom->siz)) {
 		printf("idata location out of bounds \n");
 	}
 
 	printf("Extracting idata @ %08lX (size=%08lX)\n",
-			(unsigned long) fh.idata_start, (unsigned long) idata_siz);
-	if (fwrite(&src[fh.idata_start - ROM_BASE], 1, idata_siz, ofile) != idata_siz) {
+			(unsigned long) fh->idata_start, (unsigned long) idata_siz);
+	if (fwrite(&flrom->rom[fh->idata_start - ROM_BASE], 1, idata_siz, ofile) != idata_siz) {
 		printf("bad fwrite : %s\n", strerror(errno));
 	}
+
+	closerom(flrom);
 	return;
 }
 

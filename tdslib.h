@@ -36,7 +36,7 @@ struct flashrom_hdr {
  * Includes the header and symtable info
  */
 struct flashrom {
-	const u8 *rom;
+	u8 *rom;
 	uint32_t siz;
 
 	struct flashrom_hdr fh;
@@ -63,6 +63,15 @@ struct sym_entry {
 _Static_assert(sizeof(struct sym_entry) == 0x0E, "bad sym_entry size\n");
 
 /********** useful funcs ********/
+
+/** load ROM, parse header and return new fh struct.
+ *
+ * caller must call closerom()
+ */
+struct flashrom *loadrom(FILE *romfil);
+
+/** close ROM and free resources */
+void closerom(struct flashrom *flrom);
 
 /** parse flash ROM header into fh struct */
 void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh);
