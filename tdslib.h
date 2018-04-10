@@ -13,6 +13,7 @@
 
 #define ROM_BASE 0x01000000UL	//flash ROM loaded address
 
+
 /* first 0x2C bytes of a flash ROM.
  * the sizeof() of this struct may be incorrect
  */
@@ -31,6 +32,20 @@ struct flashrom_hdr {
 };
 
 
+/* general flash ROM metadata.
+ * Includes the header and symtable info
+ */
+struct flashrom {
+	const u8 *rom;
+	uint32_t siz;
+
+	struct flashrom_hdr fh;
+
+	u32 symloc;	//file offset of symbol table
+	u32 sym_num;	//number of symbol entries
+};
+
+
 /* struct SYMBOL in vxworks "symbol.h"
  * it was user-customizable and seems to have changed from vx 5.0 to vx 5.4.
  *
@@ -38,12 +53,11 @@ struct flashrom_hdr {
  */
 
 struct sym_entry {
+	uint32_t unk_0;	//always 0?
 	uint32_t p_name;	/* string */
 	uint32_t p_obj;	/* addr of item */
-	uint8_t b8;	/* ?? */
-	uint8_t b9;	/* ?? */
-	uint16_t wA;	/* ?? */
-	uint16_t wC;	/* ?? */
+	uint8_t type;	/* not sure; 5 = code, 7 = idata, 9=bss ? */
+	uint8_t unk_1;	/* ?? */
 } __attribute__ ((packed));
 
 _Static_assert(sizeof(struct sym_entry) == 0x0E, "bad sym_entry size\n");
