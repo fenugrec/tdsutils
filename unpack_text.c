@@ -239,31 +239,14 @@ static bool parse_meta(const u8 *buf, u32 siz, struct pack_meta *pm) {
 }
 
 static void unpack_all(FILE *i_file, struct pack_meta *pm) {
-	u32 file_len;
+	struct flashrom *flrom;
 
 	u16 rec_index = 0;
 
-	rewind(i_file);
-	file_len = flen(i_file);
-	if ((!file_len) || (file_len > file_maxsize)) {
-		printf("huge file (length %lu)\n", (unsigned long) file_len);
-		return;
-	}
+	flrom = loadrom(i_file);
+	if (!flrom) return;
 
-	u8 *src = malloc(file_len);
-	if (!src) {
-		printf("malloc choke\n");
-		return;
-	}
-
-	/* load whole ROM */
-	if (fread(src,1,file_len,i_file) != file_len) {
-		printf("trouble reading\n");
-		free(src);
-		return;
-	}
-
-	if (!parse_meta(src, file_len, pm)) {
+	if (!parse_meta(flrom->rom, flrom->siz, pm)) {
 		printf("missing metadata\n");
 		return;
 	}
@@ -272,13 +255,14 @@ static void unpack_all(FILE *i_file, struct pack_meta *pm) {
 	for (rec_index = 1; rec_index <= pm->recisiz; rec_index++) {
 		u16 recpos;
 
-		recpos = reconst_16(&src[pm->a_recindex + (rec_index * 2) - 2]);
+		recpos = reconst_16(&flrom->rom[pm->a_recindex + (rec_index * 2) - 2]);
 		printf("\n\n****** record %u @ packed[%X] ******\n",
 				rec_index, (unsigned) recpos);
 		(void) _unpack_text(pm, recpos, 1, 0);
 		printf("\n");
 	}
 
+	closerom(flrom);
 	return;
 }
 

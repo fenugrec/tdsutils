@@ -76,7 +76,7 @@ const uint8_t *u32memstr(const uint8_t *buf, uint32_t buflen, const uint32_t nee
 
 
 // hax, get file length but restore position
-u32 flen(FILE *hf) {
+static u32 _flen(FILE *hf) {
 	long siz;
 	long orig;
 
@@ -175,14 +175,14 @@ struct flashrom *loadrom(FILE *romfil) {
 	struct flashrom * flrom;
 
 	rewind(romfil);
-	file_len = flen(romfil);
+	file_len = _flen(romfil);
 	if ((!file_len) || (file_len > file_maxsize)) {
 		printf("huge file (length %lu)\n", (unsigned long) file_len);
 		return NULL;
 	}
 
 	flrom = malloc(sizeof(struct flashrom));
-	if (flrom) {
+	if (!flrom) {
 		printf("malloc choke\n");
 		return NULL;
 	}

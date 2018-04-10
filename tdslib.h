@@ -79,9 +79,6 @@ void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh);
 /** parse single symbol table entry */
 void parse_sym(const uint8_t *buf, struct sym_entry *se);
 
-/** get file length but restore position */
-uint32_t flen(FILE *hf);
-
 /** Read uint32 at *buf bigendian
 */
 uint32_t reconst_32(const uint8_t *buf);
