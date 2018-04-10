@@ -152,11 +152,13 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void 
  * @return 1 if ok
  */
 
-static bool pm_parse16v(const u8 *buf, u32 siz, u16 *dest, struct pack_meta *pmstruc, const char *sym) {
+static bool pm_parse16v(struct flashrom *flrom, u16 *dest, struct pack_meta *pmstruc, const char *sym) {
+	const u8 *buf = flrom->rom;
+	u32 siz = flrom->siz;
 
-	if (*dest) return 1;
+	if (*dest) return 0;
 
-	u32 psymoffs = find_sym(buf, pmstruc->symloc, siz, (const u8 *) sym, strlen(sym));
+	u32 psymoffs = find_sym(flrom, pmstruc->symloc,(const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
 		printf("Couldn't find %s !\n", sym);
 		return 0;
@@ -183,11 +185,13 @@ static bool pm_parse16v(const u8 *buf, u32 siz, u16 *dest, struct pack_meta *pms
  *
  * get file ofs of obj, since caller may not need the value at *pobj
  */
-static bool pm_parse32(const u8 *buf, u32 siz, u32 *dest, struct pack_meta *pmstruc, const char *sym) {
+static bool pm_parse32(struct flashrom *flrom, u32 *dest, struct pack_meta *pmstruc, const char *sym) {
+	const u8 *buf = flrom->rom;
+	u32 siz = flrom->siz;
 
-	if (*dest) return 1;
+	if (*dest) return 0;
 
-	u32 psymoffs = find_sym(buf, pmstruc->symloc, siz, (const u8 *) sym, strlen(sym));
+	u32 psymoffs = find_sym(flrom, pmstruc->symloc, (const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
 		printf("Couldn't find %s !\n", sym);
 		return 0;
@@ -213,18 +217,19 @@ static bool pm_parse32(const u8 *buf, u32 siz, u32 *dest, struct pack_meta *pmst
 /** parse symbol table to fill in unspecified metadata in *pm.
  * ret 1 if ok
  */
-static bool parse_meta(const u8 *buf, u32 siz, struct pack_meta *pm) {
+static bool parse_meta(struct flashrom *flrom, struct pack_meta *pm) {
+	const u8 *buf = flrom->rom;
 
 	int rv = 1;
 
-	rv &= pm_parse32(buf, siz, &pm->a_tokbase, pm, SYM_TOKBASE);
-	rv &= pm_parse32(buf, siz, &pm->a_maxtok, pm, SYM_MAXTOK);
-	rv &= pm_parse32(buf, siz, &pm->a_tok, pm, SYM_TOKADDR);
-	rv &= pm_parse32(buf, siz, &pm->a_ptext, pm, SYM_PTEXT);
-	rv &= pm_parse16v(buf, siz, &pm->word_size, pm, SYM_WORDSIZE);
-	rv &= pm_parse16v(buf, siz, &pm->word_mask, pm, SYM_WORDMASK);
-	rv &= pm_parse32(buf, siz, &pm->a_recindex, pm, SYM_RECINDEX);
-	rv &= pm_parse32(buf, siz, &pm->a_recisiz, pm, SYM_RECISIZ);
+	rv &= pm_parse32(flrom, &pm->a_tokbase, pm, SYM_TOKBASE);
+	rv &= pm_parse32(flrom, &pm->a_maxtok, pm, SYM_MAXTOK);
+	rv &= pm_parse32(flrom, &pm->a_tok, pm, SYM_TOKADDR);
+	rv &= pm_parse32(flrom, &pm->a_ptext, pm, SYM_PTEXT);
+	rv &= pm_parse16v(flrom, &pm->word_size, pm, SYM_WORDSIZE);
+	rv &= pm_parse16v(flrom, &pm->word_mask, pm, SYM_WORDMASK);
+	rv &= pm_parse32(flrom, &pm->a_recindex, pm, SYM_RECINDEX);
+	rv &= pm_parse32(flrom, &pm->a_recisiz, pm, SYM_RECISIZ);
 
 	if (!rv) {
 		return 0;
@@ -246,7 +251,7 @@ static void unpack_all(FILE *i_file, struct pack_meta *pm) {
 	flrom = loadrom(i_file);
 	if (!flrom) return;
 
-	if (!parse_meta(flrom->rom, flrom->siz, pm)) {
+	if (!parse_meta(flrom, pm)) {
 		printf("missing metadata\n");
 		return;
 	}

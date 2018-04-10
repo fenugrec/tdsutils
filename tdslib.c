@@ -150,7 +150,9 @@ void parse_sym(const u8 *buf, struct sym_entry *se) {
 }
 
 
-u32 find_sym(const u8 *buf, u32 sympos, u32 siz, const u8 *name, size_t nlen) {
+uint32_t find_sym(struct flashrom *flrom, uint32_t sympos, const uint8_t *name, size_t nlen) {
+	const u8 *buf = flrom->rom;
+	u32 siz = flrom->siz;
 	u32 cur;
 
 	for (cur = sympos; cur < siz; cur += sizeof(struct sym_entry)) {

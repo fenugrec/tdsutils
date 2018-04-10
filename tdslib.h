@@ -120,8 +120,9 @@ uint32_t find_pattern(const uint8_t *buf, uint32_t siz, unsigned patlen,
 
 /** iterate through symbol table trying to match name.
  *
+ * @param file offs of sym table (TODO : use the one in flrom)
  * @param siz in bytes
  * @param nlen strlen(name)
  * @return file offset of entry; 0 if not found
  */
-uint32_t find_sym(const uint8_t *buf, uint32_t sympos, uint32_t siz, const uint8_t *name, size_t nlen);
+uint32_t find_sym(struct flashrom *flrom, uint32_t sympos, const uint8_t *name, size_t nlen);
