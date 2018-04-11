@@ -42,31 +42,98 @@
  * fills caller-provided *librd
  */
 static void parse_librdescr(struct flashrom *flrom, u32 fileoffs, struct libr_descr *librd) {
-	librd-> ptype = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, ptype)]);
-	librd-> psize = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, psize)]);
-	librd-> poffs = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, poffs)]);
-	librd-> pfactory = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, pfactory)]);
+	librd-> ptype = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, ptype)]) - ROM_BASE;
+	librd-> psize = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, psize)]) - ROM_BASE;
+	librd-> poffs = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, poffs)]) - ROM_BASE;
+	librd-> pfactory = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, pfactory)]) - ROM_BASE;
 	librd-> membase = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, membase)]);
 	librd-> size1 = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, size1)]);
 	librd-> size2 = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, size2)]);
-	librd-> psavefunc = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, psavefunc)]);
+	librd-> psavefunc = reconst_32(&flrom->rom[fileoffs + offsetof(struct libr_descr, psavefunc)]) - ROM_BASE;
 	return;
 }
 
 
+static void dump_u8(const u8 *buf, unsigned bytes) {
+	unsigned cur = 0;
+	while (bytes--) {
+		printf("%02X ", (unsigned) buf[cur]);
+		cur++;
+	}
+}
+static void dump_u16(const u8 *buf, unsigned bytes) {
+	u16 val;
+	unsigned cur = 0;
+	while (bytes -= 2) {
+		val = reconst_16(&buf[cur]);
+		printf("%04X ", (unsigned) val);
+		cur += 2;
+	}
+}
+static void dump_u32(const u8 *buf, unsigned bytes) {
+	u32 val;
+	unsigned cur = 0;
+	while (bytes -= 4) {
+		val = reconst_32(&buf[cur]);
+		printf("%08X ", (unsigned) val);
+		cur += 4;
+	}
+}
+
 static void dump_onelibr(struct flashrom *flrom, u32 fileoffs, const u8 *nvdata, u32 nvsiz) {
 	struct libr_descr librd;
+	u32 nvram_offs;	//pos within nvram
 
 	parse_librdescr(flrom, fileoffs, &librd);
 
 	printf("librarian @ %lX:\tmembase=%lX, size1=%lX, size2=%lX\n",
 			(unsigned long) fileoffs, (unsigned long) librd.membase,
 			(unsigned long) librd.size1, (unsigned long) librd.size2);
-	if ((librd.membase >= NVRAM_BASE) && (librd.membase <= (NVRAM_BASE + NVRAM_MAXSIZ))) {
+	if ((librd.membase < NVRAM_BASE) || (librd.membase >= (NVRAM_BASE + NVRAM_MAXSIZ))) {
 		printf("outside NVRAM, skipping\n");
 		return;
 	}
 
+	/* To parse all librarian entries, iterate through offsets array until we reach
+	 * "size1".
+	 */
+	printf("#item\tpos\t\ttype\tsize(B)\tdata\n");
+
+	nvram_offs = librd.membase - NVRAM_BASE;
+	unsigned idx;
+
+	for (idx = 0; ; idx += 1) {
+		u8 type = flrom->rom[librd.ptype + idx];
+		u16 size = reconst_16(&flrom->rom[librd.psize + 2 * idx]);
+		u32 offs = reconst_32(&flrom->rom[librd.poffs + 4 * idx]);
+
+		if (offs >= librd.size1) {
+			//done
+			break;
+		}
+		if ((offs + size) >= nvsiz) {
+			printf("%X\t%06X\t%X\t%X\t<outside NVRAM!?>\n",
+					idx, (unsigned) nvram_offs + offs, (unsigned) type, (unsigned) size);
+			continue;
+		}
+		printf("%X\t%06X\t%X\t%X\t",
+					idx, (unsigned) nvram_offs + offs, (unsigned) type, (unsigned) size);
+		switch (type) {
+		case LIBR_TYPE_U8:
+			dump_u8(&nvdata[nvram_offs + offs], size);
+			break;
+		case LIBR_TYPE_U16:
+			dump_u16(&nvdata[nvram_offs + offs], size);
+			break;
+		case LIBR_TYPE_U32:
+			dump_u32(&nvdata[nvram_offs + offs], size);
+			break;
+		default:
+			dump_u8(&nvdata[nvram_offs + offs], size);
+			break;
+		}
+		printf("\n");
+	}
 	return;
 }
 

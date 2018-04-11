@@ -66,20 +66,30 @@ _Static_assert(sizeof(struct sym_entry) == 0x0E, "bad sym_entry size\n");
 
 /** librarian descriptor
  *
+ * For convenience, "p" values are saved in here as file offsets
  */
 struct libr_descr {
-	uint32_t ptype;
-	uint32_t psize;
-	uint32_t poffs;
-	uint32_t pfactory;
+	uint32_t ptype;	//array of "types" for each item. 3 = uint32 ? 2 = uint16?
+	uint32_t psize;	//array of "sizes" for each item, in bytes. An item can be an array, e.g. type=2 and size=1A
+	uint32_t poffs;	//array of "offsets" of each item (added to membase)
+	uint32_t pfactory;	//array of default values (factory init)
 	uint32_t membase;	//such as 0x4000100
-	uint32_t size1;
-	uint32_t size2;
+	uint32_t size1;		//seems used more often: checksum, factory initialization,
+	uint32_t size2;	//always == size1 ?
 	uint32_t flags;	//not sure
 	uint32_t psavefunc;	//not sure
 } __attribute__ ((packed));
 
 _Static_assert(sizeof(struct libr_descr) == 0x24, "bad libr_descr size\n");
+
+/* tentative defs for the ptype array */
+#define LIBR_TYPE_U8 1
+#define LIBR_TYPE_U16 2
+#define LIBR_TYPE_U32 3
+//#define LIBR_TYPE_FLOAT ?
+
+
+
 
 /********** useful funcs ********/
 
