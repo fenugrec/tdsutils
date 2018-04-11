@@ -256,6 +256,8 @@ static void unpack_all(FILE *i_file, struct pack_meta *pm) {
 		return;
 	}
 
+	print_rominfo(flrom);
+
 	// to work properly, index 0 is empty and points 2 bytes before recindex
 	for (rec_index = 1; rec_index <= pm->recisiz; rec_index++) {
 		u16 recpos;

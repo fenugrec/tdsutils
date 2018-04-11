@@ -217,3 +217,20 @@ void closerom(struct flashrom *flrom) {
 	free(flrom);
 	return;
 }
+
+
+void print_rominfo(struct flashrom *flrom) {
+	u32 idata_siz;
+
+	printf("bodyck_start:\t%lX\n", (unsigned long) flrom->fh.bodyck_start);
+	printf("idata_start:\t%lX\n", (unsigned long) flrom->fh.idata_start);
+	printf("sdata:\t%lX\n", (unsigned long) flrom->fh.sdata);
+	printf("bss_start:\t%lX\n", (unsigned long) flrom->fh.bss_start);
+
+	idata_siz = flrom->fh.bss_start - flrom->fh.sdata;
+	printf("idata siz:\t%lX\n", (unsigned long) idata_siz);
+	printf("idata end:\t%lX\n", (unsigned long) flrom->fh.idata_start + idata_siz);
+
+	//symloc?
+	return;
+}

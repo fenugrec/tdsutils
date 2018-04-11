@@ -76,6 +76,9 @@ void closerom(struct flashrom *flrom);
 /** parse flash ROM header into fh struct */
 void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh);
 
+/** print ROM info and metadata */
+void print_rominfo(struct flashrom *flrom);
+
 /** parse single symbol table entry */
 void parse_sym(const uint8_t *buf, struct sym_entry *se);
 
