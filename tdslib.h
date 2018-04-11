@@ -86,6 +86,7 @@ _Static_assert(sizeof(struct libr_descr) == 0x24, "bad libr_descr size\n");
 #define LIBR_TYPE_U8 1
 #define LIBR_TYPE_U16 2
 #define LIBR_TYPE_U32 3
+#define LIBR_TYPE_4 4
 //#define LIBR_TYPE_FLOAT ?
 
 

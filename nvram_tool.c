@@ -56,27 +56,30 @@ static void parse_librdescr(struct flashrom *flrom, u32 fileoffs, struct libr_de
 
 static void dump_u8(const u8 *buf, unsigned bytes) {
 	unsigned cur = 0;
-	while (bytes--) {
+	while (bytes) {
 		printf("%02X ", (unsigned) buf[cur]);
 		cur++;
+		bytes -= 1;
 	}
 }
 static void dump_u16(const u8 *buf, unsigned bytes) {
 	u16 val;
 	unsigned cur = 0;
-	while (bytes -= 2) {
+	while (bytes) {
 		val = reconst_16(&buf[cur]);
 		printf("%04X ", (unsigned) val);
 		cur += 2;
+		bytes -= 1;
 	}
 }
 static void dump_u32(const u8 *buf, unsigned bytes) {
 	u32 val;
 	unsigned cur = 0;
-	while (bytes -= 4) {
+	while (bytes) {
 		val = reconst_32(&buf[cur]);
 		printf("%08X ", (unsigned) val);
 		cur += 4;
+		bytes -= 4;
 	}
 }
 
@@ -126,6 +129,9 @@ static void dump_onelibr(struct flashrom *flrom, u32 fileoffs, const u8 *nvdata,
 			dump_u16(&nvdata[nvram_offs + offs], size);
 			break;
 		case LIBR_TYPE_U32:
+			dump_u32(&nvdata[nvram_offs + offs], size);
+			break;
+		case LIBR_TYPE_4:
 			dump_u32(&nvdata[nvram_offs + offs], size);
 			break;
 		default:
