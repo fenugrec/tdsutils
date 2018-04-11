@@ -131,6 +131,39 @@ uint32_t find_pattern(const uint8_t *buf, uint32_t siz, unsigned patlen,
 }
 
 
+#define SYMTBL_MAXSDIST	8
+#define SYMSIZE_LOBOUND 0x1000
+#define SYMSIZE_HIBOUND 0x2000
+/** Attempt to guess the start and size of the sym table.
+ *
+ * Probably won't work as-is on many ROMs since it depends
+ * on the ROM header (which varies, i.e. 7xxC and 7xxD are
+ * are not quite like 7xxA). The strategy is
+ * to start at the end of the idata section and work backwards
+ * to find the "symtbl_size" value which is conveniently stored
+ * right there.
+ */
+
+static void _find_symtbl(struct flashrom *flrom) {
+	u32 idata_end = flrom->fh.idata_start + (flrom->fh.bss_start - flrom->fh.sdata);
+	u32 cur = idata_end - ROM_BASE;	//conv to file offs
+	u32 stop = cur - SYMTBL_MAXSDIST;
+
+	for (; cur >= stop; cur -= 2) {
+		u32 test = reconst_32(&flrom->rom[cur]);
+		if ((test <= SYMSIZE_HIBOUND) && (test >= SYMSIZE_LOBOUND)) {
+			flrom->sym_num = test;
+			flrom->symloc = cur - (test * sizeof(struct sym_entry));
+			return;
+		}
+	}
+	/* if not found : fill bogus value that should at least not crash */
+	flrom->sym_num = 1;
+	flrom->symloc = 0;
+	return;
+
+}
+
 void parse_romhdr(const uint8_t *buf, struct flashrom_hdr *fh) {
 	fh->rominit = reconst_32(&buf[offsetof(struct flashrom_hdr, rominit)]);
 	fh->bodyck_start = reconst_32(&buf[offsetof(struct flashrom_hdr, bodyck_start)]);
@@ -208,6 +241,8 @@ struct flashrom *loadrom(FILE *romfil) {
 	flrom->siz = file_len;
 
 	parse_romhdr(src, &flrom->fh);
+	_find_symtbl(flrom);
+
 	return flrom;
 }
 
@@ -231,6 +266,7 @@ void print_rominfo(struct flashrom *flrom) {
 	printf("idata siz:\t%lX\n", (unsigned long) idata_siz);
 	printf("idata end:\t%lX\n", (unsigned long) flrom->fh.idata_start + idata_siz);
 
-	//symloc?
+	printf("symtbl @\t%lX\n", (unsigned long) flrom->symloc);
+	printf("sym entries:\t%lX\n", (unsigned long) flrom->sym_num);
 	return;
 }

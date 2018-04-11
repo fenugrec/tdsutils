@@ -38,8 +38,6 @@
 
 /** static init to 0 = safe */
 struct pack_meta {
-	u32 symloc;	//file offset of symbol table
-
 	//these can be filled after buffering the ROM
 	u32 a_recindex;	//fileofs of record index
 	u32 a_recisiz; //fileofs of rec index size
@@ -152,13 +150,11 @@ u16 _unpack_text(const struct pack_meta *pm, u32 offs_packed, bool getlen, void 
  * @return 1 if ok
  */
 
-static bool pm_parse16v(struct flashrom *flrom, u16 *dest, struct pack_meta *pmstruc, const char *sym) {
+static bool pm_parse16v(struct flashrom *flrom, u16 *dest, const char *sym) {
 	const u8 *buf = flrom->rom;
 	u32 siz = flrom->siz;
 
-	if (*dest) return 0;
-
-	u32 psymoffs = find_sym(flrom, pmstruc->symloc,(const u8 *) sym, strlen(sym));
+	u32 psymoffs = find_sym(flrom, flrom->symloc, (const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
 		printf("Couldn't find %s !\n", sym);
 		return 0;
@@ -185,13 +181,11 @@ static bool pm_parse16v(struct flashrom *flrom, u16 *dest, struct pack_meta *pms
  *
  * get file ofs of obj, since caller may not need the value at *pobj
  */
-static bool pm_parse32(struct flashrom *flrom, u32 *dest, struct pack_meta *pmstruc, const char *sym) {
+static bool pm_parse32(struct flashrom *flrom, u32 *dest, const char *sym) {
 	const u8 *buf = flrom->rom;
 	u32 siz = flrom->siz;
 
-	if (*dest) return 0;
-
-	u32 psymoffs = find_sym(flrom, pmstruc->symloc, (const u8 *) sym, strlen(sym));
+	u32 psymoffs = find_sym(flrom, flrom->symloc, (const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
 		printf("Couldn't find %s !\n", sym);
 		return 0;
@@ -222,14 +216,14 @@ static bool parse_meta(struct flashrom *flrom, struct pack_meta *pm) {
 
 	int rv = 1;
 
-	rv &= pm_parse32(flrom, &pm->a_tokbase, pm, SYM_TOKBASE);
-	rv &= pm_parse32(flrom, &pm->a_maxtok, pm, SYM_MAXTOK);
-	rv &= pm_parse32(flrom, &pm->a_tok, pm, SYM_TOKADDR);
-	rv &= pm_parse32(flrom, &pm->a_ptext, pm, SYM_PTEXT);
-	rv &= pm_parse16v(flrom, &pm->word_size, pm, SYM_WORDSIZE);
-	rv &= pm_parse16v(flrom, &pm->word_mask, pm, SYM_WORDMASK);
-	rv &= pm_parse32(flrom, &pm->a_recindex, pm, SYM_RECINDEX);
-	rv &= pm_parse32(flrom, &pm->a_recisiz, pm, SYM_RECISIZ);
+	rv &= pm_parse32(flrom, &pm->a_tokbase, SYM_TOKBASE);
+	rv &= pm_parse32(flrom, &pm->a_maxtok, SYM_MAXTOK);
+	rv &= pm_parse32(flrom, &pm->a_tok, SYM_TOKADDR);
+	rv &= pm_parse32(flrom, &pm->a_ptext, SYM_PTEXT);
+	rv &= pm_parse16v(flrom, &pm->word_size, SYM_WORDSIZE);
+	rv &= pm_parse16v(flrom, &pm->word_mask, SYM_WORDMASK);
+	rv &= pm_parse32(flrom, &pm->a_recindex, SYM_RECINDEX);
+	rv &= pm_parse32(flrom, &pm->a_recisiz, SYM_RECISIZ);
 
 	if (!rv) {
 		return 0;
@@ -243,29 +237,24 @@ static bool parse_meta(struct flashrom *flrom, struct pack_meta *pm) {
 	return 1;
 }
 
-static void unpack_all(FILE *i_file, struct pack_meta *pm) {
-	struct flashrom *flrom;
+static void unpack_all(struct flashrom *flrom) {
+	struct pack_meta pm;
 
 	u16 rec_index = 0;
 
-	flrom = loadrom(i_file);
-	if (!flrom) return;
-
-	if (!parse_meta(flrom, pm)) {
+	if (!parse_meta(flrom, &pm)) {
 		printf("missing metadata\n");
 		return;
 	}
 
-	print_rominfo(flrom);
-
 	// to work properly, index 0 is empty and points 2 bytes before recindex
-	for (rec_index = 1; rec_index <= pm->recisiz; rec_index++) {
+	for (rec_index = 1; rec_index <= pm.recisiz; rec_index++) {
 		u16 recpos;
 
-		recpos = reconst_16(&flrom->rom[pm->a_recindex + (rec_index * 2) - 2]);
+		recpos = reconst_16(&flrom->rom[pm.a_recindex + (rec_index * 2) - 2]);
 		printf("\n\n****** record %u @ packed[%X] ******\n",
 				rec_index, (unsigned) recpos);
-		(void) _unpack_text(pm, recpos, 1, 0);
+		(void) _unpack_text(&pm, recpos, 1, 0);
 		printf("\n");
 	}
 
@@ -292,13 +281,14 @@ static void usage(void)
 {
 	fprintf(stderr, "usage:\n"
 		"--file    \t-f <filename>\tbinary ROM dump\n"
-		"--symloc  \t-s <file_offs> start of symbol table in file\n"
+		"--symloc  \t-s <file_offs> start of symbol table in file (optional) \n"
 		"");
 }
 
 
 int main(int argc, char * argv[]) {
-	struct pack_meta pm = {0};
+	struct flashrom *flrom;
+	u32 force_symloc = 0;
 
 	char c;
 	int optidx;
@@ -307,38 +297,14 @@ int main(int argc, char * argv[]) {
 	printf(	"**** %s\n"
 		"**** (c) 2018 fenugrec\n", argv[0]);
 
-	while((c = getopt_long(argc, argv, "t:m:a:p:f:s:h",
+	while((c = getopt_long(argc, argv, "f:s:h",
 			       long_options, &optidx)) != -1) {
 		switch(c) {
 		case 'h':
 			usage();
 			return 0;
-		case 't':
-			if (sscanf(optarg, "%x", &pm.tokbase) != 1) {
-				printf("did not understand %s\n", optarg);
-				goto bad_exit;
-			}
-			break;
-		case 'm':
-			if (sscanf(optarg, "%x", &pm.maxtok) != 1) {
-				printf("did not understand %s\n", optarg);
-				goto bad_exit;
-			}
-			break;
-		case 'a':
-			if (sscanf(optarg, "%x", &pm.a_tok) != 1) {
-				printf("did not understand %s\n", optarg);
-				goto bad_exit;
-			}
-			break;
-		case 'p':
-			if (sscanf(optarg, "%x", &pm.a_ptext) != 1) {
-				printf("did not understand %s\n", optarg);
-				goto bad_exit;
-			}
-			break;
 		case 's':
-			if (sscanf(optarg, "%x", &pm.symloc) != 1) {
+			if (sscanf(optarg, "%x", &force_symloc) != 1) {
 				printf("did not understand %s\n", optarg);
 				goto bad_exit;
 			}
@@ -359,7 +325,7 @@ int main(int argc, char * argv[]) {
 			goto bad_exit;
 		}
 	}
-	if (!pm.symloc || !file) {
+	if (!file) {
 		printf("some missing args.\n");
 		usage();
 		goto bad_exit;
@@ -370,7 +336,17 @@ int main(int argc, char * argv[]) {
 		goto bad_exit;
 	}
 
-	unpack_all(file, &pm);
+	flrom = loadrom(file);
+	if (!flrom) return 1;
+
+	if (force_symloc) {
+		flrom->symloc = force_symloc;
+		flrom->sym_num = (flrom->siz - force_symloc) / sizeof(struct sym_entry);	//"safe" guess
+	}
+
+	print_rominfo(flrom);
+
+	unpack_all(flrom);
 	fclose(file);
 	return 0;
 
