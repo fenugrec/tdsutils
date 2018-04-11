@@ -4,6 +4,7 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>	//just for FILE
 #include <stdint.h>
 
@@ -128,3 +129,21 @@ uint32_t find_pattern(const uint8_t *buf, uint32_t siz, unsigned patlen,
  * @return file offset of entry; 0 if not found
  */
 uint32_t find_sym(struct flashrom *flrom, const uint8_t *name, size_t nlen);
+
+
+
+/** helper for u16 symbol parsage
+ *
+ * 1) find symbol entry with name *sym
+ * 2) get u16 value at p_obj
+ *
+ * @return 1 if ok
+ */
+bool pm_parse16v(struct flashrom *flrom, uint16_t *dest, const char *sym);
+
+/** helper for u32 symbol parsage
+ *
+ * 1) find symbol entry with name *sym
+ * 2) get file ofs of obj, since caller may not need the value at *pobj
+ */
+bool pm_parse32(struct flashrom *flrom, uint32_t *dest, const char *sym);
