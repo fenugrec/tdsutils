@@ -183,14 +183,17 @@ void parse_sym(const u8 *buf, struct sym_entry *se) {
 }
 
 
-uint32_t find_sym(struct flashrom *flrom, uint32_t sympos, const uint8_t *name, size_t nlen) {
+uint32_t find_sym(struct flashrom *flrom, const uint8_t *name, size_t nlen) {
 	const u8 *buf = flrom->rom;
 	u32 siz = flrom->siz;
-	u32 cur;
+	u32 cur = flrom->symloc;
+	u32 sym_idx;
 
-	for (cur = sympos; cur < siz; cur += sizeof(struct sym_entry)) {
+	for (sym_idx = 0; sym_idx <= flrom->sym_num; sym_idx++) {
+		cur += sizeof(struct sym_entry);
+		if (cur >= siz) return 0;
+
 		// cheat : don't parse whole entry
-
 		u32 pname = reconst_32(&buf[cur + offsetof(struct sym_entry, p_name)]);
 		pname -= ROM_BASE;	//now a file offset
 		if ((pname + nlen) > siz) {

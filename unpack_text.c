@@ -154,7 +154,7 @@ static bool pm_parse16v(struct flashrom *flrom, u16 *dest, const char *sym) {
 	const u8 *buf = flrom->rom;
 	u32 siz = flrom->siz;
 
-	u32 psymoffs = find_sym(flrom, flrom->symloc, (const u8 *) sym, strlen(sym));
+	u32 psymoffs = find_sym(flrom, (const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
 		printf("Couldn't find %s !\n", sym);
 		return 0;
@@ -185,7 +185,7 @@ static bool pm_parse32(struct flashrom *flrom, u32 *dest, const char *sym) {
 	const u8 *buf = flrom->rom;
 	u32 siz = flrom->siz;
 
-	u32 psymoffs = find_sym(flrom, flrom->symloc, (const u8 *) sym, strlen(sym));
+	u32 psymoffs = find_sym(flrom, (const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
 		printf("Couldn't find %s !\n", sym);
 		return 0;
