@@ -15,7 +15,7 @@
 #define ROM_BASE 0x01000000UL	//flash ROM loaded address
 
 
-/* first 0x2C bytes of a flash ROM.
+/** first 0x2C bytes of a flash ROM.
  * the sizeof() of this struct may be incorrect
  */
 struct flashrom_hdr {
@@ -33,7 +33,7 @@ struct flashrom_hdr {
 };
 
 
-/* general flash ROM metadata.
+/** general flash ROM metadata.
  * Includes the header and symtable info
  */
 struct flashrom {
@@ -47,7 +47,7 @@ struct flashrom {
 };
 
 
-/* struct SYMBOL in vxworks "symbol.h"
+/** struct SYMBOL in vxworks "symbol.h"
  * it was user-customizable and seems to have changed from vx 5.0 to vx 5.4.
  *
  * in  TDS744 1.1e, sizeof == 0x0E.
@@ -62,6 +62,24 @@ struct sym_entry {
 } __attribute__ ((packed));
 
 _Static_assert(sizeof(struct sym_entry) == 0x0E, "bad sym_entry size\n");
+
+
+/** librarian descriptor
+ *
+ */
+struct libr_descr {
+	uint32_t ptype;
+	uint32_t psize;
+	uint32_t poffs;
+	uint32_t pfactory;
+	uint32_t membase;	//such as 0x4000100
+	uint32_t size1;
+	uint32_t size2;
+	uint32_t flags;	//not sure
+	uint32_t psavefunc;	//not sure
+} __attribute__ ((packed));
+
+_Static_assert(sizeof(struct libr_descr) == 0x24, "bad libr_descr size\n");
 
 /********** useful funcs ********/
 

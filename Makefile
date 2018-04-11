@@ -5,7 +5,7 @@ OPTFLAGS = -g
 #EXFLAGS = -fprofile-arcs -ftest-coverage
 CFLAGS = $(BASICFLAGS) $(OPTFLAGS) $(EXFLAGS)
 
-TGTLIST = unpack_text test extract_idata
+TGTLIST = unpack_text test extract_idata nvram_tool
 
 all: $(TGTLIST)
 
@@ -15,6 +15,8 @@ extract_idata:	extract_idata.c tdslib.c
 test:	test.c tdslib.c
 
 unpack_text: unpack_text.c tdslib.c
+
+nvram_tool: nvram_tool.c tdslib.c
 
 clean:
 	rm -f *.o
