@@ -53,6 +53,36 @@ static void parse_librdescr(struct flashrom *flrom, u32 fileoffs, struct libr_de
 	return;
 }
 
+/** ret 1 if ok */
+static bool verify_checksum(struct libr_descr *librd, const u8 *nvdata, u32 nvsiz) {
+	u32 nvram_offs;
+	u32 size;
+	u16 cks = 0;
+	u16 want;
+	u32 cur;
+
+	// 1- check if "guard" bytes match declared size
+
+	nvram_offs = librd->membase - NVRAM_BASE;
+	size = reconst_32(&nvdata[nvram_offs + librd->size1 - 4]);
+	if (size != librd->size1) {
+		printf("size mismatch\n");
+		return 0;
+	}
+
+	// 2- _libCheckSumMem
+	for (cur = 0; cur < librd->size1; cur += 2) {
+		cks += reconst_16(&nvdata[nvram_offs + cur]);
+	}
+	want = reconst_16(&nvdata[nvram_offs - 2]);
+	if (cks != want) {
+		printf("bad cks : wanted %02X, got %02X\n", (unsigned) want, (unsigned) cks);
+		return 0;
+	}
+	printf("checksum OK\n");
+	return 1;
+}
+
 
 static void dump_u8(const u8 *buf, unsigned bytes) {
 	unsigned cur = 0;
@@ -96,6 +126,8 @@ static void dump_onelibr(struct flashrom *flrom, u32 fileoffs, const u8 *nvdata,
 		printf("outside NVRAM, skipping\n");
 		return;
 	}
+
+	verify_checksum(&librd, nvdata, nvsiz);
 
 	/* To parse all librarian entries, iterate through offsets array until we reach
 	 * "size1".
