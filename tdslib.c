@@ -238,9 +238,8 @@ bool pm_parse16v(struct flashrom *flrom, u16 *dest, const char *sym) {
 
 
 
-bool pm_parse32(struct flashrom *flrom, u32 *dest, const char *sym) {
+bool pm_parse32(struct flashrom *flrom, u32 *dest, u32 base, const char *sym) {
 	const u8 *buf = flrom->rom;
-	u32 siz = flrom->siz;
 
 	u32 psymoffs = find_sym(flrom, (const u8 *) sym, strlen(sym));
 	if (!(psymoffs)) {
@@ -250,12 +249,11 @@ bool pm_parse32(struct flashrom *flrom, u32 *dest, const char *sym) {
 
 	u32 pobj = reconst_32(&buf[psymoffs + offsetof(struct sym_entry, p_obj)]);
 
-	if (!pobj || (pobj < ROM_BASE) ||
-		((pobj - ROM_BASE) > siz)) {
+	if (!pobj || (pobj < base)) {
 		printf("bad pobj\n");
 		return 0;
 	}
-	pobj -= ROM_BASE;
+	pobj -= base;
 	*dest = pobj;
 	if (!*dest) {
 		printf("bad value for %s\n", sym);

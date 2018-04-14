@@ -186,6 +186,6 @@ bool pm_parse16v(struct flashrom *flrom, uint16_t *dest, const char *sym);
 /** helper for u32 symbol parsage
  *
  * 1) find symbol entry with name *sym
- * 2) get file ofs of obj, since caller may not need the value at *pobj
+ * 2) write (p_obj - base) into dest. Caller may not need the value at *pobj
  */
-bool pm_parse32(struct flashrom *flrom, uint32_t *dest, const char *sym);
+bool pm_parse32(struct flashrom *flrom, uint32_t *dest, uint32_t base, const char *sym);

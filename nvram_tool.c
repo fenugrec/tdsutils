@@ -224,7 +224,7 @@ static void dump_libs(struct flashrom *flrom, const u8 *nvdata, u32 nvsiz) {
 	unsigned lib_index = 0;
 	u32 cur;
 
-	if (!pm_parse32(flrom, &librcoll_pos, SYM_LIBRCOLL)) {
+	if (!pm_parse32(flrom, &librcoll_pos, ROM_BASE, SYM_LIBRCOLL)) {
 		printf("couldn't find collection\n");
 		return;
 	}

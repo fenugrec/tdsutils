@@ -149,14 +149,14 @@ static bool parse_meta(struct flashrom *flrom, struct pack_meta *pm) {
 
 	int rv = 1;
 
-	rv &= pm_parse32(flrom, &pm->a_tokbase, SYM_TOKBASE);
-	rv &= pm_parse32(flrom, &pm->a_maxtok, SYM_MAXTOK);
-	rv &= pm_parse32(flrom, &pm->a_tok, SYM_TOKADDR);
-	rv &= pm_parse32(flrom, &pm->a_ptext, SYM_PTEXT);
+	rv &= pm_parse32(flrom, &pm->a_tokbase, ROM_BASE, SYM_TOKBASE);
+	rv &= pm_parse32(flrom, &pm->a_maxtok, ROM_BASE, SYM_MAXTOK);
+	rv &= pm_parse32(flrom, &pm->a_tok, ROM_BASE, SYM_TOKADDR);
+	rv &= pm_parse32(flrom, &pm->a_ptext, ROM_BASE, SYM_PTEXT);
 	rv &= pm_parse16v(flrom, &pm->word_size, SYM_WORDSIZE);
 	rv &= pm_parse16v(flrom, &pm->word_mask, SYM_WORDMASK);
-	rv &= pm_parse32(flrom, &pm->a_recindex, SYM_RECINDEX);
-	rv &= pm_parse32(flrom, &pm->a_recisiz, SYM_RECISIZ);
+	rv &= pm_parse32(flrom, &pm->a_recindex, ROM_BASE, SYM_RECINDEX);
+	rv &= pm_parse32(flrom, &pm->a_recisiz, ROM_BASE, SYM_RECISIZ);
 
 	if (!rv) {
 		return 0;
