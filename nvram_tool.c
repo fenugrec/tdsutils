@@ -64,6 +64,11 @@ static bool verify_checksum(struct libr_descr *librd, const u8 *nvdata, u32 nvsi
 	// 1- check if "guard" bytes match declared size
 
 	nvram_offs = librd->membase - NVRAM_BASE;
+	if (((nvram_offs + librd->size1) >= nvsiz) ||
+		(nvram_offs <= 2)) {
+		printf("librd out of bounds\n");
+		return 0;
+	}
 	size = reconst_32(&nvdata[nvram_offs + librd->size1 - 4]);
 	if (size != librd->size1) {
 		printf("size mismatch\n");

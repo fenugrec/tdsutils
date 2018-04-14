@@ -63,6 +63,7 @@ struct sym_entry {
 
 _Static_assert(sizeof(struct sym_entry) == 0x0E, "bad sym_entry size\n");
 
+/************* librarian stuff */
 
 /** librarian descriptor
  *
