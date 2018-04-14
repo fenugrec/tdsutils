@@ -91,6 +91,18 @@ _Static_assert(sizeof(struct libr_descr) == 0x24, "bad libr_descr size\n");
 //#define LIBR_TYPE_FLOAT ?
 
 
+/********** nvram log stuff */
+struct log_hdr {
+	u16 log_cks;
+	u16 firstnum;	//+2; ??
+	u16 unk4;	//+4
+	u16 unk6;	//+6, another counter of some sort
+	u16 nextw;	//+8, offset of next available word ? i.e. next writes goes to nvram[... + unk8 * 2]
+	u16 unkA;	//+A , always FFFF ?; some kind of mask compared with _scope_err_table[i].fieldC_u16
+	u16 type;	//or level ? not sure; ==4, compared with _scope_error_table[i].field4_u16
+	u16 maxnum;	//max num entries ?
+} __attribute__ ((packed));
+_Static_assert(sizeof(struct log_hdr) == 0x10, "bad log_hdr size\n");
 
 
 /********** useful funcs ********/

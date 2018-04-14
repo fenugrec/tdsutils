@@ -53,7 +53,44 @@ static void parse_librdescr(struct flashrom *flrom, u32 fileoffs, struct libr_de
 	return;
 }
 
-/** ret 1 if ok */
+/** calculate checksum for nvram log area
+ *
+ * @param log_pos offset within nvdata
+ */
+static u16 _getLogChksum(const u8 *nvdata, unsigned log_pos) {
+	unsigned idx;
+	u16 cks = 0;
+	for (idx=2; idx < 0x10; idx += 2) {
+		cks += reconst_16(&nvdata[log_pos + idx]);
+	}
+	return ~cks;
+}
+
+/** print info about a log area header
+ *
+ * @param log_pos offset within nvdata
+ */
+static void dump_loghdr(const u8 *nvdata, unsigned log_pos) {
+	struct log_hdr lh;
+	u16 cks_calc;
+
+	lh.log_cks = reconst_16(&nvdata[log_pos + offsetof(struct log_hdr, log_cks)]);
+	lh.firstnum = reconst_16(&nvdata[log_pos + offsetof(struct log_hdr, firstnum)]);
+	lh.nextw = reconst_16(&nvdata[log_pos + offsetof(struct log_hdr, nextw)]);
+	lh.type = reconst_16(&nvdata[log_pos + offsetof(struct log_hdr, type)]);
+	lh.maxnum = reconst_16(&nvdata[log_pos + offsetof(struct log_hdr, maxnum)]);
+
+	cks_calc = _getLogChksum(nvdata, log_pos);
+	printf("log cks=%04X, want %04X; firstnum=%04X, nextw=%04X, type=%04X, maxnum?=%04X\n",
+			(unsigned) cks_calc, (unsigned) lh.log_cks, (unsigned) lh.firstnum,
+			(unsigned) lh.nextw, (unsigned) lh.type, (unsigned) lh.maxnum);
+	return;
+}
+
+
+/** check librarian checksum
+ *
+ * ret 1 if ok */
 static bool verify_checksum(struct libr_descr *librd, const u8 *nvdata, u32 nvsiz) {
 	u32 nvram_offs;
 	u32 size;
@@ -235,6 +272,7 @@ static void usage(void)
 	fprintf(stderr, "usage:\n"
 		"--file    \t-f <filename>\tfirmware ROM dump\n"
 		"--nvdump  \t-n <filename>\tNVRAM dump\n"
+		"--logpos  \t-l <offs>\toffset within NVRAM of log header (optional)\n"
 		"");
 }
 
@@ -243,6 +281,7 @@ int main(int argc, char * argv[]) {
 	struct flashrom *flrom;
 	u8 nvdata[NVRAM_MAXSIZ];
 	u32 nvsiz;
+	u32 logpos = 0;
 
 	char c;
 	int optidx;
@@ -252,7 +291,7 @@ int main(int argc, char * argv[]) {
 	printf(	"**** %s\n"
 		"**** (c) 2018 fenugrec\n", argv[0]);
 
-	while((c = getopt_long(argc, argv, "f:n:h",
+	while((c = getopt_long(argc, argv, "f:n:l:h",
 			       long_options, &optidx)) != -1) {
 		switch(c) {
 		case 'h':
@@ -280,6 +319,12 @@ int main(int argc, char * argv[]) {
 				goto bad_exit;
 			}
 			break;
+		case 'l':
+			if (sscanf(optarg, "%x", &logpos) != 1) {
+				printf("did not understand %s\n", optarg);
+				logpos = 0;
+			}
+			break;
 		default:
 			usage();
 			goto bad_exit;
@@ -301,6 +346,9 @@ int main(int argc, char * argv[]) {
 	fclose(nvfile);
 
 	print_rominfo(flrom);
+	if ((logpos) && ((logpos + sizeof(struct log_hdr)) < nvsiz)) {
+		dump_loghdr(nvdata, logpos);
+	}
 
 	dump_libs(flrom, nvdata, nvsiz);
 	return 0;
