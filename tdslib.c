@@ -302,6 +302,8 @@ struct flashrom *loadrom(FILE *romfil) {
 	parse_romhdr(src, &flrom->fh);
 	_find_symtbl(flrom);
 
+	flrom->idata_offset = flrom->fh.sdata - flrom->fh.idata_start;
+
 	return flrom;
 }
 

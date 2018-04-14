@@ -42,6 +42,8 @@ struct flashrom {
 
 	struct flashrom_hdr fh;
 
+	u32 idata_offset;	//such that address of symbol in RAM == ROM_location + idata_offset
+
 	u32 symloc;	//file offset of symbol table
 	u32 sym_num;	//number of symbol entries
 };
@@ -100,7 +102,7 @@ struct log_hdr {
 	u16 nextw;	//+8, offset of next available word ? i.e. next writes goes to nvram[... + unk8 * 2]
 	u16 unkA;	//+A , always FFFF ?; some kind of mask compared with _scope_err_table[i].fieldC_u16
 	u16 type;	//or level ? not sure; ==4, compared with _scope_error_table[i].field4_u16
-	u16 maxnum;	//max num entries ?
+	u16 maxnum;	//size in u16 words, excluding 16byte hdr
 } __attribute__ ((packed));
 _Static_assert(sizeof(struct log_hdr) == 0x10, "bad log_hdr size\n");
 

@@ -36,6 +36,9 @@
 /*** symbol names to retrieve required metadata */
 #define SYM_LIBRCOLL "_libraryCollection"
 
+#define SYM_SCOPELOG "_scopeErrorLog"
+#define SYM_SCOPELOGSIZE "_scopeErrorLogSize"
+
 
 /** parse librarian descriptor
  *
@@ -87,6 +90,41 @@ static void dump_loghdr(const u8 *nvdata, unsigned log_pos) {
 	return;
 }
 
+/** Find location of scope error log in NVRAM
+ *
+ * @param logpos : destination for log position, returned as offset within NVRAM
+ * @param logsize : destination for log size, in bytes
+ *
+ * ret 1 if ok
+ */
+static bool find_scopelog(struct flashrom *flrom, u32 *logpos, u32 *logsize) {
+	u32 logpos_ram, logsize_ram;	//those vars are stored in .idata
+
+	if (!pm_parse32(flrom, &logpos_ram, 0, SYM_SCOPELOG)) {
+		printf("couldn't find scope log\n");
+		return 0;
+	}
+	if (!pm_parse32(flrom, &logsize_ram, 0, SYM_SCOPELOGSIZE)) {
+		printf("couldn't find scope log size\n");
+		return 0;
+	}
+
+	//adjust to point into ROM .idata
+	logpos_ram -= flrom->idata_offset;
+	logpos_ram -= ROM_BASE;
+	logsize_ram -= flrom->idata_offset;
+	logsize_ram -= ROM_BASE;
+
+	if ((logpos_ram >= flrom->siz) ||
+		(logsize_ram >= flrom->siz)) {
+		printf("scope log vars OOB: %lX, %lX\n",
+				(unsigned long) logpos_ram, (unsigned long) logsize_ram);
+		return 0;
+	}
+	*logpos = reconst_32(&flrom->rom[logpos_ram]) - NVRAM_BASE;
+	*logsize = reconst_32(&flrom->rom[logsize_ram]);
+	return 1;
+}
 
 /** check librarian checksum
  *
@@ -282,6 +320,7 @@ int main(int argc, char * argv[]) {
 	u8 nvdata[NVRAM_MAXSIZ];
 	u32 nvsiz;
 	u32 logpos = 0;
+	u32 logsize;
 
 	char c;
 	int optidx;
@@ -346,6 +385,11 @@ int main(int argc, char * argv[]) {
 	fclose(nvfile);
 
 	print_rominfo(flrom);
+
+	if (find_scopelog(flrom, &logpos, &logsize)) {
+		printf("found scope log @ %lX, size=%lX\n",
+			(	unsigned long) logpos, (unsigned long) logsize);
+	}
 	if ((logpos) && ((logpos + sizeof(struct log_hdr)) < nvsiz)) {
 		dump_loghdr(nvdata, logpos);
 	}
