@@ -386,10 +386,14 @@ int main(int argc, char * argv[]) {
 
 	print_rominfo(flrom);
 
-	if (find_scopelog(flrom, &logpos, &logsize)) {
-		printf("found scope log @ %lX, size=%lX\n",
-			(	unsigned long) logpos, (unsigned long) logsize);
+	if (!logpos) {
+		//wasn't user-specified:
+		if (find_scopelog(flrom, &logpos, &logsize)) {
+			printf("found scope log @ %lX, size=%lX\n",
+				(	unsigned long) logpos, (unsigned long) logsize);
+		}
 	}
+
 	if ((logpos) && ((logpos + sizeof(struct log_hdr)) < nvsiz)) {
 		dump_loghdr(nvdata, logpos);
 	}
