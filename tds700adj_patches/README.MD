@@ -129,4 +129,6 @@ crk-apply --patch gpib-at.crk
 
 Original file must be the version with sha256sum `76a0519f70b23c88b26885d140d0bd8e946190d7ea54f4164dfa1954061eea1d`
 
-- gpib-at.* : support GPIB-AT card with default addresses at 2C0,2C2, etc...
+- gpib-at : support GPIB-AT card with default addresses at 2C0,2C2, etc...
+
+- cec_pc488 : CEC PC-488 (by jozefch), see https://www.eevblog.com/forum/testgear/automating-tektronix-field-adjustment-software-for-tds-oscilloscopes/msg4611313/#msg4611313
