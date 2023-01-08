@@ -1,3 +1,9 @@
+These are patches for Tektronix "Field Adjustment Software", to enable the use of different GPIB cards than the hardcoded defaults.
+
+Patches may be applied with either
+- [xdelta3](http://xdelta.org/)
+- [pycrk](https://github.com/pR0Ps/pycrk)
+
 ## Background
 
 
@@ -103,11 +109,15 @@ Maybe this decompiled code will help understand what happens there :
 - Remember, you cannot change the length of the .exe file, and string needs to be 0-terminated.
 - tweak the code near file offset 0x346D1 . Any hex editor will do but it helps to look at disassembly to validate.
 
+Then, once the patch is tested to work properly, create a patch file :
+- with xdelta3: `xdelta3 -e -0 -f -s orig.exe patched.exe patch_name.xd`
+- with pycrk: `crk-generate orig.exe patched.exe -o patch_name.crk`
+
 ## How to use one of these patches
 
 They are available either as CRK (text-based) or xdelta files.
-- with [xdelta3](http://xdelta.org/) : `xdelta3 -d -s <path_to_tds700.exe> <patchname.xd> <name_of_output.exe>`
-- with [pycrk](https://github.com/pR0Ps/pycrk) :
+- with xdelta3 : `xdelta3 -d -s <path_to_tds700.exe> <patchname.xd> <name_of_output.exe>`
+- with pycrk :
 Caution, that tool modifies the file in-place. Make a backup before patching. E.g.
 ```
 cp TDS700.exe tds_bak.exe
